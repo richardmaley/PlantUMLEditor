@@ -27,61 +27,66 @@ Uses
   Winapi.ActiveX,
   Winapi.WebView2;
 
-
 Type
   TfrmPlantUMLEditor = Class(TForm)
-    btnLoadFile: TButton;
-    btnSave: TButton;
     Edge: TEdgeBrowser;
     edtFileName: TEdit;
-    ImageList: TImageList;
-    OpenDialog: TOpenDialog;
     pnlFileName: TPanel;
     Timer: TTimer;
-    procedure btnLoadFileClick(Sender: TObject);
-    procedure btnSaveClick(Sender: TObject);
-    procedure EdgeNavigationCompleted(Sender: TCustomEdgeBrowser;IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
+    TimerRestoreClipboard: TTimer;
+    procedure EdgeNavigationCompleted(Sender: TCustomEdgeBrowser; IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
     Procedure FormActivate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormCreate(Sender: TObject);
     procedure TimerTimer(Sender: TObject);
+    procedure TimerRestoreClipboardTimer(Sender: TObject);
   Public
-    Function CopyFileContentsToClipboard(const FileName: string): Boolean;
-    Function IsValidPlantUML(s: String): Boolean;
-    Function LoadFile(FileName: String): Boolean;
-    Function SaveCurrentCode(FileName: String): Boolean;
+    PlantUMLURL   : String;
+    sgClipboardWas: String;
+    TimeElapsed   : Integer;
+    Function GenThemes(): String;
+    Function LoadDiagram(FileName: String): Boolean;
+    Function RunJavaScript(Script, ProcName: String): Boolean;
+    Procedure ScriptTemplate();
   End;
 
 Var
   frmPlantUMLEditor: TfrmPlantUMLEditor;
 
-Const
-  PlantUMLURL='https://plantuml.mseiche.de/';
+  // Const
+  // PlantUMLURL='https://plantuml.mseiche.de/';
 Implementation
+
 Uses
+  PUmlExamples,
   ads.Globals,
-  ads.Sendkey;
+  ads.Sendkey,
+  PlantUmlHtml,
+  PleaseWait;
 
 {$R *.dfm}
+
 Function FileToStr(FileName: String): String;
 Var
   lst: TStringlist;
 Begin
-  Result:='';
-  if Not FileExists(FileName) Then Exit;
-  lst:=TStringlist.Create();
+  Result := '';
+  if Not FileExists(FileName) Then
+    Exit;
+  lst := TStringlist.Create();
   Try
     lst.LoadFromFile(FileName);
-    Result:=lst.Text;
+    Result := lst.Text;
   Finally
     FreeAndNil(lst);
   End;
 End;
 
-Function StrToFile(s:String;FileName:String):Boolean;
+Function StrToFile(s: String; FileName: String): Boolean;
 Var
-  lst:TStringlist;
+  lst: TStringlist;
 Begin
-  Result:=False;
+  Result := False;
   If FileExists(FileName) Then
   Begin
     DeleteFile(FileName);
@@ -89,11 +94,11 @@ Begin
     If FileExists(FileName) Then
       Exit;
   End;
-  lst:=TStringlist.Create();
+  lst := TStringlist.Create();
   Try
     lst.SetText(PWideChar(s));
     lst.SaveToFile(FileName);
-    Result:=FileExists(FileName);
+    Result := FileExists(FileName);
   Finally
     FreeAndNil(lst);
   End;
@@ -127,6 +132,12 @@ begin
   keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
 end;
 
+procedure SimulateEnter;
+begin
+  keybd_event(VK_RETURN, 0, 0, 0);
+  keybd_event(VK_RETURN, 0, KEYEVENTF_KEYUP, 0);
+end;
+
 procedure SimulateCtrlC;
 begin
   keybd_event(VK_CONTROL, 0, 0, 0);
@@ -135,42 +146,29 @@ begin
   keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
 end;
 
-function TfrmPlantUMLEditor.CopyFileContentsToClipboard(const FileName: string): Boolean;
-var
-  sgData: String;
-begin
-  Result := False;
-  Clipboard.AsText := '@startuml' + #13 + #10 + 'Bob->Alice' + #13 + #10 + '@enduml' + #13 + #10;
-  if not FileExists(FileName) then Exit;
-  sgData:=FileToStr(FileName);
-  If Not IsValidPlantUML(sgData) Then Exit;
-  Clipboard.AsText := sgData;
-  Result:=True;
-end;
-
-Function CloneMenuItem(SourceItem:TMenuItem):TMenuItem;
+Function CloneMenuItem(SourceItem: TMenuItem): TMenuItem;
 Var
-  i:Integer;
+  i: Integer;
 Begin
   With SourceItem Do
   Begin
-    Result:=NewItem(Caption,Shortcut,Checked,Enabled,OnClick,HelpContext,Name+'Copy');
-    If Action<>Nil Then
-      result.Action:=action;
-    If imageindex>-1 Then
-      result.imageindex:=imageindex;
-    For i:=0 To Count-1 Do
+    Result := NewItem(Caption, Shortcut, Checked, Enabled, OnClick, HelpContext, Name + 'Copy');
+    If Action <> Nil Then
+      Result.Action := Action;
+    If imageindex > -1 Then
+      Result.imageindex := imageindex;
+    For i               := 0 To Count - 1 Do
       Result.Add(CloneMenuItem(Items[i]));
   End;
 End;
 
-Procedure CloneMainMenu(m:TMainmenu;p:TPopupMenu);
+Procedure CloneMainMenu(m: TMainmenu; p: TPopupMenu);
 Var
-  i:integer;
+  i: Integer;
 Begin
   p.Items.Clear;
-  p.Images:=m.Images;
-  For i:=0 To m.Items.Count-1 Do
+  p.Images := m.Images;
+  For i    := 0 To m.Items.Count - 1 Do
   Begin
     If m.Items[i].Visible Then
     Begin
@@ -179,216 +177,255 @@ Begin
   End;
 End;
 
-procedure TfrmPlantUMLEditor.btnSaveClick(Sender: TObject);
-begin
-  If Trim(edtFileName.text)<>'' Then
-  Begin
-    SaveCurrentCode(edtFileName.text);
-  End
-  Else
-  Begin
-    btnLoadFileClick(Sender);
-  End;
-end;
-
-
-procedure TfrmPlantUMLEditor.btnLoadFileClick(Sender: TObject);
-begin
-  If Trim(FileLast) <> '' Then
-    OpenDialog.InitialDir := ExtractFilePath(FileLast);
-  If OpenDialog.Execute() Then
-  Begin
-    FileLast         := OpenDialog.FileName;
-    IniData.Values['FileLast']:=FileLast;
-    edtFileName.text := FileLast;
-    Clipboard.AsText := '@startuml' + #13 + #10 + 'Bob->Alice' + #13 + #10 + '@enduml' + #13 + #10;
-    If FileExists(FileLast) Then
-    Begin
-      edtFileName.text := FileLast;
-      CopyFileContentsToClipboard(FileLast);
-      ActiveControl := Edge;
-      Application.ProcessMessages();
-      SetMousePosition(100, 100);
-      Application.ProcessMessages();
-      Sendkey(VK_LBUTTON);
-      Application.ProcessMessages();
-      SimulateCtrlA;
-      Application.ProcessMessages();
-      SimulateCtrlV;
-      Application.ProcessMessages();
-    End;
-
-    ActiveControl := Edge;
-    Application.ProcessMessages();
-    SetMousePosition(100, 100);
-    Application.ProcessMessages();
-    SimulateLeftMouseClick;
-    Application.ProcessMessages();
-    Sendkey(VK_LBUTTON);
-    Application.ProcessMessages();
-    SimulateCtrlA;
-    Application.ProcessMessages();
-    SimulateCtrlV;
-    Application.ProcessMessages();
-  End;
-end;
-
 procedure TfrmPlantUMLEditor.EdgeNavigationCompleted(Sender: TCustomEdgeBrowser; IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
 Var
-  sgtemp: String;
+  FileName: String;
 begin
-  Clipboard.AsText := '@startuml' + #13 + #10 + 'Bob->Alice' + #13 + #10 + '@enduml' + #13 + #10;
+  frmPleaseWait.Close;
   If ParamCount > 0 Then
   Begin
-    //sgtemp := ParamStr(1);
-    If FileExists(ParamStr(1)) Then
+    FileName := ParamStr(1);
+    If FileExists(FileName) Then
     Begin
-      LoadFile(ParamStr(1));
-//      FileLast:=sgTemp;
-//      IniData.Values['FileLast']:=FileLast;
-//      edtFileName.text := FileLast;
-//      CopyFileContentsToClipboard(FileLast);
-//      ActiveControl := Edge;
-//      Application.ProcessMessages();
-//      SetMousePosition(100, 100);
-//      Application.ProcessMessages();
-//      Sendkey(VK_LBUTTON);
-//      Application.ProcessMessages();
-//      SimulateCtrlA;
-//      Application.ProcessMessages();
-//      SimulateCtrlV;
-//      Application.ProcessMessages();
+      LoadDiagram(FileName);
     End;
   End
   Else
   Begin
-    If (Trim(FileLast)<>'') And FileExists(FileLast) Then
+    FileName := FileLast;
+    If (Trim(FileName) <> '') And FileExists(FileName) Then
     Begin
-      LoadFile(FileLast);
-//      edtFileName.text := FileLast;
-//      CopyFileContentsToClipboard(FileLast);
-//      ActiveControl := Edge;
-//      Application.ProcessMessages();
-//      SetMousePosition(100, 100);
-//      Application.ProcessMessages();
-//      Sendkey(VK_LBUTTON);
-//      Application.ProcessMessages();
-//      SimulateCtrlA;
-//      Application.ProcessMessages();
-//      SimulateCtrlV;
-//      Application.ProcessMessages();
+      LoadDiagram(FileName);
     End;
   End;
   ActiveControl := Edge;
-  Application.ProcessMessages();
-  SetMousePosition(100, 100);
-  Application.ProcessMessages();
-  SimulateLeftMouseClick;
-  Application.ProcessMessages();
-  Sendkey(VK_LBUTTON);
-  Application.ProcessMessages();
-  SimulateCtrlA;
-  Application.ProcessMessages();
-  SimulateCtrlV;
-  Application.ProcessMessages();
 end;
 
 Procedure TfrmPlantUMLEditor.FormActivate(Sender: TObject);
 Begin
   If Tag = 0 Then
   Begin
-    FileLast:='';
-    If Trim(IniData.Values['FileLast'])<>'' Then FileLast:=IniData.Values['FileLast'];
-    WindowState:=wsMaximized;
-    Edge.Navigate(PlantUmlUrl);
+    SaveThemedExamplesToDisk(DirImages + 'Examples\');
+    FileLast := '';
+    InitHtml(DirCode + 'PlantUmlEditor.html');
+    PlantUMLURL := 'file:///' + DirCode + 'PlantUmlEditor.html';
+    If IniData.Values['PlantUMLURL'] <> '' Then
+    Begin
+      PlantUMLURL := IniData.Values['PlantUMLURL'];
+    End;
+    IniData.Values['PlantUMLURL'] := PlantUMLURL;
+    If Trim(IniData.Values['FileLast']) <> '' Then
+      FileLast  := IniData.Values['FileLast'];
+    WindowState := wsMaximized;
+    Edge.Navigate(PlantUMLURL);
+    frmPleaseWait.Show;
   End;
   Tag := 1;
 End;
 
-procedure TfrmPlantUMLEditor.FormClose(Sender: TObject;
-  var Action: TCloseAction);
+procedure TfrmPlantUMLEditor.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   IniData.SaveToFile(FileIni);
 end;
 
-function TfrmPlantUMLEditor.IsValidPlantUML(s: String): Boolean;
+procedure TfrmPlantUMLEditor.FormCreate(Sender: TObject);
+begin
+  TimeElapsed := 0;
+end;
+
+function TfrmPlantUMLEditor.GenThemes: String;
 Var
-  inPosStart: Integer;
-  inPosEnd: Integer;
+  s      : String;
+  Themes : Array [0 .. 43] of String;
+  Files  : Array [0 .. 3] of String;
+  i      : Integer;
+  j      : Integer;
+  inMid  : Integer;
+  inStart: Integer;
+  inEnd  : Integer;
 begin
-  Result:=False;
-  If Trim(s)='' Then Exit;
-  s:=LowerCase(s);
-  inPosStart:=Pos('@startuml',s);
-  If inPosStart=0 Then Exit;
-  inPosEnd:=Pos('@enduml',s);
-  If inPosEnd=0 Then Exit;
-  If InPosEnd<=inPosStart Then Exit;
-  Result:=True;
+  Themes[0]  := 'amiga';
+  Themes[1]  := 'aws-orange';
+  Themes[2]  := 'black-knight';
+  Themes[3]  := 'bluegray';
+  Themes[4]  := 'blueprint';
+  Themes[5]  := 'carbon-gray';
+  Themes[6]  := 'cerulean-outline';
+  Themes[7]  := 'cerulean';
+  Themes[8]  := 'cloudscape-design';
+  Themes[9]  := 'crt-amber';
+  Themes[10] := 'crt-green';
+  Themes[11] := 'cyborg-outline';
+  Themes[12] := 'cyborg';
+  Themes[13] := 'hacker';
+  Themes[14] := 'lightgray';
+  Themes[15] := 'mars';
+  Themes[16] := 'materia-outline';
+  Themes[17] := 'materia';
+  Themes[18] := 'metal';
+  Themes[19] := 'mimeograph';
+  Themes[20] := 'minty';
+  Themes[21] := 'mono';
+  Themes[22] := 'none';
+  Themes[23] := 'plain';
+  Themes[24] := 'reddress-darkblue';
+  Themes[25] := 'reddress-darkgreen';
+  Themes[26] := 'reddress-darkorange';
+  Themes[27] := 'reddress-darkred';
+  Themes[28] := 'reddress-lightblue';
+  Themes[29] := 'reddress-lightgreen';
+  Themes[30] := 'reddress-lightorange';
+  Themes[31] := 'reddress-lightred';
+  Themes[32] := 'sandstone';
+  Themes[33] := 'silver';
+  Themes[34] := 'sketchy-outline';
+  Themes[35] := 'sketchy';
+  Themes[36] := 'spacelab-white';
+  Themes[37] := 'spacelab';
+  Themes[38] := 'Sunlust';
+  Themes[39] := 'superhero-outline';
+  Themes[40] := 'superhero';
+  Themes[41] := 'toy';
+  Themes[42] := 'united';
+  Themes[43] := 'vibrant';
+  inMid      := (Length(Themes) div 4) - 1;
+  inStart    := Low(Themes);
+  inEnd      := inStart + inMid - 1;
+  For j      := 0 To 3 Do
+  Begin
+    s :=                                              //
+      '@startuml' + #13 + #10 +                       //
+      '<style>' + #13 + #10 +                         //
+      '  title {' + #13 + #10 +                       //
+      '    BackGroundColor transparent' + #13 + #10 + //
+      '    FontColor black' + #13 + #10 +             //
+      '    HorizontalAlignment center' + #13 + #10 +  //
+      '  }  ' + #13 + #10 +                           //
+      '</style>' + #13 + #10 +                        //
+      'label l [' + #13 + #10;                        //
+    For i := inStart To inEnd Do
+    Begin
+      If i = 22 Then
+        Continue;
+      If i = 38 Then
+        Continue;
+      If Themes[i] = 'none' Then
+        Continue;
+      If Themes[i] = 'Sunlust' Then
+        Continue;
+      s := s +                                                      //
+        '{{' + #13 + #10 +                                          //
+        '!theme ' + Themes[i] + #13 + #10 +                         //
+        'title ' + Themes[i] + #13 + #10 +                          //
+        'Alice -> Bob: ' + Themes[i] + #13 + #10 +                  //
+        'Bob -> Alice: ' + Themes[i] + #13 + #10 +                  //
+        '}}' + #13 + #10 +                                          //
+        '{{' + #13 + #10 +                                          //
+        'title ___________________________________  ' + #13 + #10 + //
+        '}}' + #13 + #10;                                           //
+    End;
+    s        := s + ']' + #13 + #10 + '@enduml' + #13 + #10;
+    Result   := s;
+    Files[j] := s;
+    StrToFile(s, DirImages + 'PlantUMLThemes' + IntToStr(j + 1) + '.puml');
+    inStart := inEnd + 1;
+    inEnd   := inStart + inMid - 1;
+    If inEnd > High(Themes) Then
+      inEnd := High(Themes);
+    If j = 2 Then
+      inEnd := High(Themes);
+  End;
+
+  Result := '''PlantUMLThemes1.puml' + #13 + #10 + Files[0] + #13 + #10 + '''PlantUMLThemes2.puml' + #13 + #10 + Files[1] + #13 + #10 + '''PlantUMLThemes3.puml' + #13 + #10 + Files[2] + #13 + #10 + '''PlantUMLThemes4.puml' + #13 + #10 + Files[3] +
+    #13 + #10;
+  StrToFile(Result, DirImages + 'PlantUMLThemesAll.puml');
+  ShowMessage('Done');
 end;
 
-function TfrmPlantUMLEditor.LoadFile(FileName: String): Boolean;
+function TfrmPlantUMLEditor.LoadDiagram(FileName: String): Boolean;
+Var
+  Script: String;
+  Path  : String;
 begin
-  Result:=False;
-  If Not FileExists(FileName) Then Exit;
-  FileLast:=FileName;
-  IniData.Values['FileLast']:=FileLast;
-  edtFileName.text := FileLast;
-  CopyFileContentsToClipboard(FileLast);
-  ActiveControl := Edge;
-  Application.ProcessMessages();
-  SetMousePosition(100, 100);
-  Application.ProcessMessages();
-  Sendkey(VK_LBUTTON);
-  Application.ProcessMessages();
-  SimulateCtrlA;
-  Application.ProcessMessages();
-  SimulateCtrlV;
-  Application.ProcessMessages();
-  Result:=True;
+  Result := False;
+  If Trim(FileName) = '' Then
+    Exit;
+  If Not FileExists(FileName) Then
+    Exit;
+  edtFileName.Text := FileName;
+  // Clipboard.AsText:=ExtractFileName(FileName);
+  sgClipboardWas := Clipboard.AsText;
+  // ShowMessage(sgClipboardWas);
+  Clipboard.AsText := FileName;
+  Path             := ExtractFilePath(FileName);
+  Path             := StringReplace(Path, '\', '/', [rfReplaceAll]);
+  FileName         := StringReplace(FileName, '\', '/', [rfReplaceAll]);
+  Script           := '  let msg="loadPlantUMLDiagram";' + #13 + #10 +    //
+    '  let succeed=false;' + #13 + #10 +                                  //
+    '  try {' + #13 + #10 +                                               //
+    '    document.getElementById("load-file-btn").click();' + #13 + #10 + //
+    '    loadPlantUMLDiagram("");' + #13 + #10 +                          //
+  // '    alert("After loadPlantUMLDiagram");'+#13+#10+//
+    '    msg=msg+" SUCCEEDED";' + #13 + #10 +                              //
+    '    succeed=true;' + #13 + #10 +                                      //
+    '  } catch (error) {' + #13 + #10 +                                    //
+    '    msg=msg=msg+" FAILED";' + #13 + #10 +                             //
+    '    console.error(msg, error);' + #13 + #10 +                         //
+    '    console.error(msg+"ErrorName:", error.name);' + #13 + #10 +       //
+    '    console.error(msg+"ErrorMessage:", error.message);' + #13 + #10 + //
+    '    console.error(msg+"ErrorStack:", error.stack);' + #13 + #10 +     //
+    '    msg=msg+";Error="+error.message;' + #13 + #10 +                   //
+    '  }' + #13 + #10;                                                     //
+  Timer.Enabled := True;
+  Result        := RunJavaScript(Script, 'loadPlantUMLDiagram');
+  // Clipboard.AsText:=sgClipboardWas;
 end;
 
-function TfrmPlantUMLEditor.SaveCurrentCode(FileName: String): Boolean;
+procedure TfrmPlantUMLEditor.ScriptTemplate;
+Var
+  Script  : String;
+  ProcName: String;
 begin
-  Timer.Enabled:=True;
-  Result:=True;
+  ProcName := 'PasteWith?';
+  Script   := 'alert("' + ProcName + '1");' + #13 + #10 +
+
+    'alert("' + ProcName + '2");' + #13 + #10 +
+
+    'alert("' + ProcName + '3");' + #13 + #10;
+  RunJavaScript(Script, ProcName);
+end;
+
+Function TfrmPlantUMLEditor.RunJavaScript(Script, ProcName: String): Boolean;
+var
+  sgDt: string;
+begin
+  Result := False;
+  try
+    ActiveControl := Edge;
+    Application.ProcessMessages;
+    sgDt := FormatDateTime('YYYYMMDDHHNNSS', now());
+    StrToFile(Script, DirReports + ProcName + sgDt + '.js');
+    Edge.ExecuteScript(Script);
+    Result := True;
+  except
+    on E: Exception do
+  end;
+end;
+
+procedure TfrmPlantUMLEditor.TimerRestoreClipboardTimer(Sender: TObject);
+begin
+  TimerRestoreClipboard.Enabled := False;
+  If Trim(sgClipboardWas) <> '' Then
+    Clipboard.AsText := sgClipboardWas;
 end;
 
 procedure TfrmPlantUMLEditor.TimerTimer(Sender: TObject);
-Var
-  sgCode: String;
-  FileName: String;
-  sgDt: String;
 begin
-  Timer.Enabled:=False;
-  FileName:=edtFileName.Text;
-  sgDt := FormatDateTime('YYYYMMDDHHNNSS',now());
-  ActiveControl:=Edge;
-  Application.ProcessMessages();
-  SetMousePosition(100,100);
-  Application.ProcessMessages();
-  SimulateLeftMouseClick;
-  Application.ProcessMessages();
-  SendKey(VK_LBUTTON);
-  Application.ProcessMessages();
-  SimulateCtrlA;
-  Application.ProcessMessages();
-  SimulateCtrlC;
-  Application.ProcessMessages();
-  sgCode:=Clipboard.AsText;
-  SetMousePosition(100,100);
-  Application.ProcessMessages();
-  SimulateLeftMouseClick;
-  Application.ProcessMessages();
-
-  If Trim(sgCode)<>'' Then
-  Begin
-    If FileExists(FileName) Then
-    Begin
-      CopyFile(PWideChar(FileName),PWideChar(FileName+sgDt+'.bak'),False);
-    End;
-    StrToFile(sgCode,FileName);
-  End
+  Timer.Enabled := False;
+  SimulateCtrlV;
+  SimulateEnter;
+  Application.ProcessMessages;
+  TimerRestoreClipboard.Enabled := True;
 end;
 
 End.

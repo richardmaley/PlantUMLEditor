@@ -19,6 +19,7 @@ Interface
 Uses
   System.Classes;
 
+Function BackupIfNeeded(FileName, BackUpDir: String): Boolean;
 Function DelTree(DirectoryName: String): Boolean;
 Function EmptyDirectory(Directory: String): Boolean;
 Function ExecuteKnownFileType(Handle: THandle; FileName: String): Boolean;
@@ -76,6 +77,115 @@ Uses
   Vcl.Dialogs,
   Vcl.Forms;
 
+Function BackupIfNeeded(FileName, BackUpDir: String): Boolean;
+  Function FileToStr(FileName: String): String;
+  Var
+    lst: TStringlist;
+  Begin
+    Result := '';
+    if Not FileExists(FileName) Then
+      Exit;
+    lst := TStringlist.Create();
+    Try
+      lst.LoadFromFile(FileName);
+      Result := lst.Text;
+    Finally
+      FreeAndNil(lst);
+    End;
+  End;
+
+  Function ExtractFileNameNoExt(FileString: String): String;
+  Var
+    FileWithExtString: String;
+    FileExtString    : String;
+    LenExt           : integer;
+    LenNameWithExt   : integer;
+  Begin
+    FileWithExtString := ExtractFileName(FileString);
+    LenNameWithExt    := Length(FileWithExtString);
+    FileExtString     := ExtractFileExt(FileString);
+    LenExt            := Length(FileExtString);
+    If LenExt = 0 Then
+    Begin
+      Result := FileWithExtString;
+    End
+    Else
+    Begin
+      Result := Copy(FileWithExtString, 1, (LenNameWithExt - LenExt));
+    End;
+  End;
+
+  Function GetLastBackup(FileName, BackUpDir: String): String;
+  Var
+    lst               : TStringlist;
+    sgBackups         : String;
+    sgBaseName        : String;
+    sgDir             : String;
+    sgExt             : String;
+    sgFileData        : String;
+    sgMask            : String;
+    sgNewestBackupFile: String;
+  Begin
+    Result := '';
+    If Trim(FileName) = '' Then
+      Exit;
+    If Trim(BackUpDir) = '' Then
+      Exit;
+    If Not System.SysUtils.FileExists(FileName) Then
+      Exit;
+    If Not System.SysUtils.DirectoryExists(BackUpDir) Then
+      Exit;
+    sgBaseName := ExtractFileNameNoExt(FileName);
+    sgExt      := ExtractFileExt(FileName);
+    sgMask     := sgBaseName + '????????????' + sgExt;
+    sgBackups  := FilesInDir(BackUpDir, sgMask);
+    If Trim(sgBackups) = '' Then
+      Exit;
+    lst := TStringlist.Create();
+    Try
+      lst.Duplicates     := dupIgnore;
+      lst.sorted         := True;
+      lst.Text           := sgBackups;
+      sgNewestBackupFile := lst[lst.count - 1];
+      sgFileData         := FileToStr(sgNewestBackupFile);
+      Result             := sgFileData;
+    Finally
+      FreeAndNil(lst);
+    End;
+  End;
+
+  Function NeedBackup(FileName, BackUpDir: String): Boolean;
+  Var
+    sgBackupData : String;
+    sgCurrentData: String;
+  Begin
+    Result := False;
+    If Trim(FileName) = '' Then
+      Exit;
+    If Trim(BackUpDir) = '' Then
+      Exit;
+    If Not System.SysUtils.FileExists(FileName) Then
+      Exit;
+    If Not System.SysUtils.DirectoryExists(BackUpDir) Then
+      Exit;
+    sgBackupData  := GetLastBackup(FileName, BackUpDir);
+    sgCurrentData := FileToStr(FileName);
+    Result        := (sgCurrentData <> sgBackupData);
+  End;
+
+Var
+  boBackupNeeded: Boolean;
+  sgDt          : String;
+Begin
+  Result         := False;
+  boBackupNeeded := NeedBackup(FileName, BackUpDir);
+  If Not boBackupNeeded Then
+    Exit;
+  sgDt := FormatDateTime('YYYYMMDDHHNNSS', now());
+  CopyFile(PWideChar(FileName), PWideChar(BackUpDir + ExtractFileNameNoExt(FileName) + sgDt + ExtractFileExt(FileName)), False);
+  Result := True;
+End;
+
 Function DelTree(DirectoryName: String): Boolean;
 Begin
   Result := File_DirOperations_Detail('DELETE', // Action            : String;  //COPY, DELETE, MOVE, RENAME
@@ -90,20 +200,22 @@ End;
 
 Function EmptyDirectory(Directory: String): Boolean;
 Var
-  T: TStringList;
-  i: Integer;
+  T: TStringlist;
+  i: integer;
 Begin
-  T := TStringList.Create();
+  T := TStringlist.Create();
   Try
     Result    := False;
     Directory := IncludeTrailingPathDelimiter(Directory);
-    If Not DirectoryExists(Directory) Then Exit;
+    If Not DirectoryExists(Directory) Then
+      Exit;
     FilesInDirDetail(T, Directory, '*.*');
     Result := True;
-    For i  := 0 To T.Count - 1 Do
+    For i  := 0 To T.count - 1 Do
     Begin
       Try
-        If FileExists(Directory + T[i]) Then DeleteFile(PWideChar(Directory + T[i]));
+        If FileExists(Directory + T[i]) Then
+          DeleteFile(PWideChar(Directory + T[i]));
       Except
         Result := False;
       End;

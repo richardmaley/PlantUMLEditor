@@ -29,6 +29,7 @@ Var
   boDebug               : Boolean = False;
   boDirBackup           : Boolean = False;
   boDirBin              : Boolean = False;
+  boDirCode             : Boolean = True;
   boDirDB               : Boolean = False;
   boDirDest             : Boolean = False;
   boDirDFMInfo          : Boolean = False;
@@ -60,6 +61,7 @@ Var
   DirCommonFiles        : String  = '';
   DirBackup             : String  = '';
   DirBin                : String  = '';
+  DirCode               : String  = '';
   DirDB                 : String  = '';
   DirDest               : String  = '';
   DirDFMInfo            : String  = '';
@@ -690,6 +692,7 @@ DirResources                                                                  :=
 DirResUtilities                                                               := DirResources+'Utilities\';
 DirSearches                                                                   := DirPersist + 'Searches\';
 DirSource                                                                     := ExePath + 'Source\';
+DirCode                                                                       := DirSource + 'Code\';
 DirSQL                                                                        := ExePath + 'SQL\';
 DirTestData                                                                   := ExePath + 'TestData\';
 DirToolbar                                                                    := 'c:\Toolbar\';
@@ -704,27 +707,29 @@ DirDFMInfoTEST                                                                :=
 // End Directory Modifications
 // Start Directory Creation Booleans
 { example set boDirDB:=True to create DirDB directory }
-// boDirImages:=True;
+boDirCode:=True;
+boDirImages:=True;
 // boDirSQL:=True;
 // boDirTestData:=True;
 // boDirToolbar:=True;
 // boDirXMLDocs:=True;
 // boDirXMLDocs:=True;
-boDirDB           := True;
+//boDirDB           := True;
 //boDirBin            := True;
 //boDirHelp         := True;
 boDirReports      := True;
-boDirResources    := True;
+//boDirResources    := True;
 //boDirResUtilities := True;
 //boDirSearches     := True;
 boDirSource       := True;
-boDirSQL          := True;
+//boDirSQL          := True;
 //boDirTestData     := True;
 // Start Directory Creation Booleans
 
 If boDirBackup           Then If Not DirectoryExists(DirBackup            ) Then ForceDirectories(DirBackup          );//
 If boDirDB               Then If Not DirectoryExists(DirDB                ) Then ForceDirectories(DirDB              );//
 If boDirBin              Then If Not DirectoryExists(DirBin               ) Then ForceDirectories(DirBin             );//
+If boDirCode             Then If Not DirectoryExists(DirCode              ) Then ForceDirectories(DirCode            );//
 If boDirDest             Then If Not DirectoryExists(DirDest              ) Then ForceDirectories(DirDest            );//
 If boDirDFMInfo          Then If Not DirectoryExists(DirDFMInfo           ) Then ForceDirectories(DirDFMInfo         );//
 If boDirDFMInfoCOMERCIAL Then If Not DirectoryExists(DirDFMInfoCOMERCIAL  ) Then ForceDirectories(DirDFMInfoCOMERCIAL);//
