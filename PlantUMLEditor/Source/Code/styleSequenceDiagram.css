@@ -1,0 +1,140 @@
+<style>
+.sequence-custom {
+    /* Main sequence diagram properties */
+    sequence {
+        BorderColor #666666
+        BackgroundColor transparent
+        Shadowing false
+        StereotypeFontName Arial
+        StereotypeFontSize 12
+        StereotypeFontColor #666666
+        ResponseMessageBelowArrow true
+    }
+
+    /* Actor styling */
+    actor {
+        BorderColor #005500
+        BackgroundColor #99FF99
+        FontName Courier
+        FontSize 17
+        FontColor red
+        BorderThickness 2
+    }
+
+    /* Participant styling */
+    participant {
+        BorderColor #0000FF
+        BackgroundColor #99CCFF
+        FontName Impact
+        FontSize 15
+        FontColor #333333
+        BorderThickness 2
+        Padding 20
+    }
+
+    /* Arrow styling */
+    arrow {
+        Color #FF0000
+        FontName Arial
+        FontSize 12
+        FontColor #333333
+        Thickness 2
+    }
+
+    /* Life line styling */
+    lifeline {
+        BorderColor #777777
+        BackgroundColor #DDDDDD
+        BorderThickness 1
+    }
+
+    /* Group styling (alt, opt, loop, etc.) */
+    group {
+        BorderColor #666666
+        BackgroundColor #EEEEEE
+        FontName Times
+        FontSize 14
+        FontColor #333333
+        HeaderFontColor #666666
+        HeaderFontSize 16
+        BodyBackgroundColor #FFFFFF
+    }
+
+    /* Reference styling */
+    reference {
+        BorderColor #999999
+        BackgroundColor #EEEEEE
+        FontName Helvetica
+        FontSize 12
+        FontColor #333333
+        HeaderFontColor #666666
+        HeaderFontSize 14
+        Alignment center
+    }
+
+    /* Box styling */
+    box {
+        BorderColor #999999
+        BackgroundColor #FFFFCC
+        FontName Verdana
+        FontSize 12
+        FontColor #333333
+        Padding 10
+    }
+
+    /* Delay styling */
+    delay {
+        FontName Arial
+        FontSize 12
+        FontColor #666666
+    }
+
+    /* Divider styling */
+    divider {
+        BorderColor #666666
+        BackgroundColor #EEEEEE
+        FontName Arial
+        FontSize 14
+        FontColor #333333
+        BorderThickness 1
+    }
+
+    /* Message styling */
+    message {
+        Alignment center
+        TextAlignment left
+    }
+
+    /* Title styling */
+    title {
+        FontName Arial
+        FontSize 18
+        FontColor #333333
+        FontStyle bold
+    }
+
+    /* Header styling */
+    header {
+        FontName Arial
+        FontSize 10
+        FontColor #999999
+    }
+
+    /* Footer styling */
+    footer {
+        FontName Arial
+        FontSize 10
+        FontColor #999999
+    }
+
+    /* Note styling */
+    note {
+        BorderColor #999999
+        BackgroundColor #FFFFCC
+        FontName Arial
+        FontSize 12
+        FontColor #333333
+        BorderThickness 1
+    }
+}
+</style>
