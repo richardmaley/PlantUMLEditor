@@ -1,0 +1,80 @@
+<style>
+classDiagram {
+    .class {
+        BackgroundColor #FEFECE
+        BorderColor #A80036
+        BorderThickness 1.5
+        FontColor #000000
+        FontName Arial
+        FontSize 14
+        FontStyle bold
+        HeaderBackgroundColor #FEFECE
+        RoundCorner 5
+        Shadowing true
+    }
+
+    .abstract {
+        BackgroundColor #F8F8F8
+        BorderColor #A80036
+        FontStyle italic
+    }
+
+    .interface {
+        BackgroundColor #F8F8F8
+        BorderColor #A80036
+        FontStyle italic
+    }
+
+    .attribute {
+        FontColor #333333
+        FontName Helvetica
+        FontSize 12
+        FontStyle normal
+        IconSize 16
+    }
+
+    .stereotype {
+        FontColor #A80036
+        FontName Arial
+        FontSize 12
+        FontStyle italic
+    }
+
+    .arrow {
+        Color #A80036
+        FontName Arial
+        FontSize 12
+        FontColor #333333
+        Thickness 1.0
+    }
+
+    .package {
+        BackgroundColor transparent
+        BorderColor #A80036
+        FontColor #A80036
+        FontName Arial
+        FontSize 14
+    }
+
+    .note {
+        BackgroundColor #FBFB77
+        BorderColor #A80036
+        FontColor #000000
+        FontName Arial
+        FontSize 12
+    }
+
+    circle {
+        FontColor #000000
+        FontName Arial
+        FontSize 12
+        FontStyle bold
+        Radius 8
+    }
+
+    root {
+        LineThickness 1.0
+        LineColor #A80036
+    }
+}
+</style>
