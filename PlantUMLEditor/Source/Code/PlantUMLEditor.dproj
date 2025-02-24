@@ -178,8 +178,8 @@
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
         <AppDPIAwarenessMode>PerMonitor</AppDPIAwarenessMode>
         <BT_BuildType>Debug</BT_BuildType>
-        <VerInfo_Build>171</VerInfo_Build>
-        <VerInfo_Keys>CompanyName=Advanced Delphi Systems;FileDescription=a windows application.;FileVersion=1.0.0.171;InternalName=PlantUMLEditor;LegalCopyright=Copyright(c)2025 Advanced Delphi Systems;LegalTrademarks=;OriginalFilename=PlantUMLEditor;ProductName=PlantUMLEditor;ProductVersion=1.0.0.0;Comments=Your satisfaction is our mission;Address=12613 Maidens Bower Drive, Potomac MD 20854-6020;Author=Dick Maley;Email=dickmaley@advdelphisys.com;WebSite=http://www.advdelphisys.com;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Build>227</VerInfo_Build>
+        <VerInfo_Keys>CompanyName=Advanced Delphi Systems;FileDescription=a windows application.;FileVersion=1.0.0.227;InternalName=PlantUMLEditor;LegalCopyright=Copyright(c)2025 Advanced Delphi Systems;LegalTrademarks=;OriginalFilename=PlantUMLEditor;ProductName=PlantUMLEditor;ProductVersion=1.0.0.0;Comments=Your satisfaction is our mission;Address=12613 Maidens Bower Drive, Potomac MD 20854-6020;Author=Dick Maley;Email=dickmaley@advdelphisys.com;WebSite=http://www.advdelphisys.com;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
         <VerInfo_AutoIncVersion>true</VerInfo_AutoIncVersion>
         <Icon_MainIcon>PlantUML.ico</Icon_MainIcon>
         <UWP_DelphiLogo44>PlantUML.png</UWP_DelphiLogo44>

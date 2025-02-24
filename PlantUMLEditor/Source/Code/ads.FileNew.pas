@@ -19,7 +19,8 @@ Interface
 Uses
   System.Classes;
 
-Function BackupIfNeeded(FileName, BackUpDir: String): Boolean;
+Function BackupIfNeeded(FileData,ShortFileName, BackUpDir: String): Boolean;overload;
+Function BackupIfNeeded(FileName, BackUpDir: String): Boolean;overload;
 Function DelTree(DirectoryName: String): Boolean;
 Function EmptyDirectory(Directory: String): Boolean;
 Function ExecuteKnownFileType(Handle: THandle; FileName: String): Boolean;
@@ -93,6 +94,59 @@ Function BackupIfNeeded(FileName, BackUpDir: String): Boolean;
       FreeAndNil(lst);
     End;
   End;
+Var
+  boBackupNeeded: Boolean;
+  sgDt          : String;
+  FileData: String;
+  ShortFileName: String;
+Begin
+  Result         := False;
+  If Trim(FileName)='' Then Exit;
+  If Trim(BackUpDir)='' Then Exit;
+  If Not FileExists(FileName) Then Exit;
+  FileData:=FileToStr(FileName);
+  ShortFileName:=ExtractFileName(FileName);
+  Result:=BackupIfNeeded(FileData,ShortFileName, BackUpDir);
+End;
+
+Function BackupIfNeeded(FileData,ShortFileName, BackUpDir: String): Boolean;overload;
+  Function FileToStr(FileName: String): String;
+  Var
+    lst: TStringlist;
+  Begin
+    Result := '';
+    if Not FileExists(FileName) Then
+      Exit;
+    lst := TStringlist.Create();
+    Try
+      lst.LoadFromFile(FileName);
+      Result := lst.Text;
+    Finally
+      FreeAndNil(lst);
+    End;
+  End;
+
+  Function StrToFile(s:String;FileName_:String):Boolean;
+  Var
+    lst:TStringlist;
+  Begin
+    Result:=False;
+    If FileExists(FileName_) Then
+    Begin
+      DeleteFile(PWideChar(FileName_));
+      Application.ProcessMessages();
+      If FileExists(FileName_) Then
+        Exit;
+    End;
+    lst:=TStringlist.Create();
+    Try
+      lst.SetText(PWideChar(s));
+      lst.SaveToFile(FileName_);
+      Result:=FileExists(FileName_);
+    Finally
+      FreeAndNil(lst);
+    End;
+  End;
 
   Function ExtractFileNameNoExt(FileString: String): String;
   Var
@@ -115,29 +169,26 @@ Function BackupIfNeeded(FileName, BackUpDir: String): Boolean;
     End;
   End;
 
-  Function GetLastBackup(FileName, BackUpDir: String): String;
+  Function GetLastBackup(ShortFileName, BackUpDir: String): String;
   Var
     lst               : TStringlist;
     sgBackups         : String;
     sgBaseName        : String;
-    sgDir             : String;
     sgExt             : String;
     sgFileData        : String;
     sgMask            : String;
     sgNewestBackupFile: String;
   Begin
     Result := '';
-    If Trim(FileName) = '' Then
+    If Trim(ShortFileName) = '' Then
       Exit;
     If Trim(BackUpDir) = '' Then
       Exit;
-    If Not System.SysUtils.FileExists(FileName) Then
-      Exit;
     If Not System.SysUtils.DirectoryExists(BackUpDir) Then
-      Exit;
-    sgBaseName := ExtractFileNameNoExt(FileName);
-    sgExt      := ExtractFileExt(FileName);
-    sgMask     := sgBaseName + '????????????' + sgExt;
+      System.SysUtils.ForceDirectories(BackUpDir);
+    sgBaseName := ExtractFileNameNoExt(ShortFileName);
+    sgExt      := ExtractFileExt(ShortFileName);
+    sgMask     := sgBaseName + '??????????????' + sgExt;
     sgBackups  := FilesInDir(BackUpDir, sgMask);
     If Trim(sgBackups) = '' Then
       Exit;
@@ -154,35 +205,30 @@ Function BackupIfNeeded(FileName, BackUpDir: String): Boolean;
     End;
   End;
 
-  Function NeedBackup(FileName, BackUpDir: String): Boolean;
+  Function NeedBackup(FileData,ShortFileName, BackUpDir: String): Boolean;
   Var
     sgBackupData : String;
-    sgCurrentData: String;
   Begin
     Result := False;
-    If Trim(FileName) = '' Then
+    If Trim(ShortFileName) = '' Then
       Exit;
     If Trim(BackUpDir) = '' Then
       Exit;
-    If Not System.SysUtils.FileExists(FileName) Then
-      Exit;
     If Not System.SysUtils.DirectoryExists(BackUpDir) Then
-      Exit;
-    sgBackupData  := GetLastBackup(FileName, BackUpDir);
-    sgCurrentData := FileToStr(FileName);
-    Result        := (sgCurrentData <> sgBackupData);
+      System.SysUtils.ForceDirectories(BackUpDir);
+    sgBackupData  := GetLastBackup(ShortFileName, BackUpDir);
+    Result        := (Trim(FileData) <> Trim(sgBackupData));
   End;
-
 Var
   boBackupNeeded: Boolean;
   sgDt          : String;
 Begin
   Result         := False;
-  boBackupNeeded := NeedBackup(FileName, BackUpDir);
+  boBackupNeeded := NeedBackup(FileData,ShortFileName, BackUpDir);
   If Not boBackupNeeded Then
     Exit;
   sgDt := FormatDateTime('YYYYMMDDHHNNSS', now());
-  CopyFile(PWideChar(FileName), PWideChar(BackUpDir + ExtractFileNameNoExt(FileName) + sgDt + ExtractFileExt(FileName)), False);
+  StrToFile(FileData, PWideChar(BackUpDir + ExtractFileNameNoExt(ShortFileName) + sgDt + ExtractFileExt(ShortFileName)));
   Result := True;
 End;
 

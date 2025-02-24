@@ -28,43 +28,100 @@ Uses
   Winapi.WebView2;
 
 Type
+  TPlantUMLFile = class
+  Private
+    FCode    : String;
+    FFileName: String;
+    FTitle   : String;
+  Public
+    property Code    : String read FCode write FCode;
+    property FileName: String read FFileName write FFileName;
+    property Title   : String read FTitle;
+  end;
+
   TfrmPlantUMLEditor = Class(TForm)
     Edge: TEdgeBrowser;
     edtFileName: TEdit;
     pnlFileName: TPanel;
     Timer: TTimer;
+    TimerBackup: TTimer;
     TimerRestoreClipboard: TTimer;
     procedure EdgeNavigationCompleted(Sender: TCustomEdgeBrowser; IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
+    procedure EdgeWebMessageReceived(Sender: TCustomEdgeBrowser; Args: TWebMessageReceivedEventArgs);
     Procedure FormActivate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
-    procedure TimerTimer(Sender: TObject);
+    procedure TimerBackupTimer(Sender: TObject);
     procedure TimerRestoreClipboardTimer(Sender: TObject);
+    procedure TimerTimer(Sender: TObject);
   Public
-    PlantUMLURL   : String;
-    sgClipboardWas: String;
-    TimeElapsed   : Integer;
+    inBackupRepeats : Integer;
+    PlantUMLFile    : TPlantUMLFile;
+    PlantUMLURL     : String;
+    sgBackupCode    : String;
+    sgBackupFileName: String;
+    sgClipboardWas  : String;
     Function GenThemes(): String;
+    Function GenTPlantUMLFileAsJSON(): String;
     Function LoadDiagram(FileName: String): Boolean;
     Function RunJavaScript(Script, ProcName: String): Boolean;
+    Procedure GenTPlantUMLFileFromJSON(out PlantUMLFile: TPlantUMLFile; Json: String);
     Procedure ScriptTemplate();
   End;
 
 Var
   frmPlantUMLEditor: TfrmPlantUMLEditor;
 
-  // Const
-  // PlantUMLURL='https://plantuml.mseiche.de/';
 Implementation
 
 Uses
-  PUmlExamples,
+  ads.FileNew,
   ads.Globals,
+  ads.JsonUtils,
   ads.Sendkey,
+  Clipbrd,
   PlantUmlHtml,
-  PleaseWait;
+  PleaseWait,
+  PUmlExamples,
+  REST.Json,
+  System.Json;
 
 {$R *.dfm}
+
+const
+  UnitName = 'PlantUMLEditor_p';
+
+function GetTextFromClipboard: string;
+var
+  ClipboardText: string;
+begin
+  // Initialize the clipboard
+  ClipboardText := '';
+
+  // Check if the clipboard contains text
+  if Clipboard.HasFormat(CF_TEXT) then
+  begin
+    // Get the text from the clipboard
+    ClipboardText := Clipboard.AsText;
+  end
+  else
+  begin
+    // Handle the case where the clipboard does not contain text
+    raise Exception.Create('Clipboard does not contain text.');
+  end;
+
+  // Return the copied text
+  Result := ClipboardText;
+end;
+
+procedure CopyTextToClipboard(const Text: string);
+begin
+  // Clear the clipboard
+  Clipboard.Clear;
+
+  // Set the text to the clipboard
+  Clipboard.AsText := Text;
+end;
 
 Function FileToStr(FileName: String): String;
 Var
@@ -199,6 +256,60 @@ begin
     End;
   End;
   ActiveControl := Edge;
+  If boAutoBackup Then
+  Begin
+    If IniData.Values['inBackupFrequencyMins'] <> '' Then
+      Try
+        inBackupFrequencyMins := StrToInt(IniData.Values['inBackupFrequencyMins']);
+      Except
+        inBackupFrequencyMins                   := 1;
+        IniData.Values['inBackupFrequencyMins'] := '1';
+      End;
+    TimerBackup.Interval := inBackupFrequencyMins * 60 * 1000;
+    If IniData.Values['boAutoBackup'] = 'TRUE' Then
+      TimerBackup.Enabled := True;
+  End;
+end;
+
+procedure TfrmPlantUMLEditor.EdgeWebMessageReceived(Sender: TCustomEdgeBrowser; Args: TWebMessageReceivedEventArgs);
+Var
+  JsonStr  : PWideChar;
+  Json     : TJsonObject;
+  ProcName : String;
+  sgMessage: String;
+  sgTitle  : String;
+begin
+  ProcName := 'TfrmPlantUMLEditor.EdgeWebMessageReceived';
+  Try
+    Args.ArgsInterface.TryGetWebMessageAsString(JsonStr);
+    If IsJsonValid(JsonStr) Then
+    Begin
+      if Args.ArgsInterface.TryGetWebMessageAsString(JsonStr) = S_OK then
+      begin
+        Json    := TJSONValue.ParseJSONValue(JsonStr) as TJsonObject;
+        sgTitle := Json.GetValue('Title').AsType<String>;
+        If sgTitle = 'PlantUmlFile' Then
+        Begin
+          GenTPlantUMLFileFromJSON(PlantUMLFile, JsonStr);
+          sgMessage := 'PlantUMLFile=' + #13 + #10 + 'Title=' + PlantUMLFile.Title + #13 + #10 + 'FileName=' + PlantUMLFile.FileName + #13 + #10 + 'Code=' + PlantUMLFile.Code + #13 + #10;
+          //LogMessage(UnitName, ProcName, sgMessage);
+          BackupIfNeeded(PlantUMLFile.Code, PlantUMLFile.FileName, DirBackup);
+          TimerBackup.Enabled := True;
+        End;
+      end;
+    End
+    Else
+    Begin
+      sgMessage := 'Failed IsJsonValid(JsonStr)' + #13 + #10 + JsonStr;
+      LogMessage(UnitName, ProcName, sgMessage);
+    End;
+  Except
+    on e: Exception Do
+    Begin
+      sgMessage := e.Message;
+      LogMessage(UnitName, ProcName, sgMessage);
+    End;
+  End;
 end;
 
 Procedure TfrmPlantUMLEditor.FormActivate(Sender: TObject);
@@ -206,6 +317,7 @@ Begin
   If Tag = 0 Then
   Begin
     SaveThemedExamplesToDisk(DirImages + 'Examples\');
+    SaveDiagramTypesToDisk(DirImages);
     FileLast := '';
     InitHtml(DirCode + 'PlantUmlEditor.html');
     PlantUMLURL := 'file:///' + DirCode + 'PlantUmlEditor.html';
@@ -226,24 +338,28 @@ End;
 procedure TfrmPlantUMLEditor.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   IniData.SaveToFile(FileIni);
+  FreeAndNil(PlantUMLFile);
 end;
 
 procedure TfrmPlantUMLEditor.FormCreate(Sender: TObject);
 begin
-  TimeElapsed := 0;
+  PlantUMLFile := TPlantUMLFile.Create;
 end;
 
 function TfrmPlantUMLEditor.GenThemes: String;
 Var
-  s      : String;
-  Themes : Array [0 .. 43] of String;
-  Files  : Array [0 .. 3] of String;
-  i      : Integer;
-  j      : Integer;
-  inMid  : Integer;
-  inStart: Integer;
-  inEnd  : Integer;
+  Files    : Array [0 .. 3] of String;
+  i        : Integer;
+  inEnd    : Integer;
+  inMid    : Integer;
+  inStart  : Integer;
+  j        : Integer;
+  ProcName : String;
+  s        : String;
+  Themes   : Array [0 .. 43] of String;
+  sgMessage: string;
 begin
+  ProcName   := 'TfrmPlantUMLEditor.GenThemes';
   Themes[0]  := 'amiga';
   Themes[1]  := 'aws-orange';
   Themes[2]  := 'black-knight';
@@ -339,7 +455,27 @@ begin
   Result := '''PlantUMLThemes1.puml' + #13 + #10 + Files[0] + #13 + #10 + '''PlantUMLThemes2.puml' + #13 + #10 + Files[1] + #13 + #10 + '''PlantUMLThemes3.puml' + #13 + #10 + Files[2] + #13 + #10 + '''PlantUMLThemes4.puml' + #13 + #10 + Files[3] +
     #13 + #10;
   StrToFile(Result, DirImages + 'PlantUMLThemesAll.puml');
-  ShowMessage('Done');
+  sgMessage := 'Done';
+  LogMessage(UnitName, ProcName, sgMessage);
+end;
+
+Function TfrmPlantUMLEditor.GenTPlantUMLFileAsJSON(): String;
+var
+  Json: String;
+begin
+  Result := '';
+  try
+    Json   := TJSON.ObjectToJsonString(PlantUMLFile, [joIndentCaseCamel, joDateIsUTC]);
+    Result := Json;
+  Except
+  end;
+end;
+
+procedure TfrmPlantUMLEditor.GenTPlantUMLFileFromJSON(out PlantUMLFile: TPlantUMLFile; Json: String);
+begin
+  If Trim(Json) = '' Then
+    Exit;
+  PlantUMLFile := TJSON.JsonToObject<TPlantUMLFile>(Json, []);
 end;
 
 function TfrmPlantUMLEditor.LoadDiagram(FileName: String): Boolean;
@@ -353,19 +489,16 @@ begin
   If Not FileExists(FileName) Then
     Exit;
   edtFileName.Text := FileName;
-  // Clipboard.AsText:=ExtractFileName(FileName);
-  sgClipboardWas := Clipboard.AsText;
-  // ShowMessage(sgClipboardWas);
+  sgClipboardWas   := Clipboard.AsText;
   Clipboard.AsText := FileName;
   Path             := ExtractFilePath(FileName);
   Path             := StringReplace(Path, '\', '/', [rfReplaceAll]);
   FileName         := StringReplace(FileName, '\', '/', [rfReplaceAll]);
-  Script           := '  let msg="loadPlantUMLDiagram";' + #13 + #10 +    //
-    '  let succeed=false;' + #13 + #10 +                                  //
-    '  try {' + #13 + #10 +                                               //
-    '    document.getElementById("load-file-btn").click();' + #13 + #10 + //
-    '    loadPlantUMLDiagram("");' + #13 + #10 +                          //
-  // '    alert("After loadPlantUMLDiagram");'+#13+#10+//
+  Script           := '  let msg="loadPlantUMLDiagram";' + #13 + #10 +     //
+    '  let succeed=false;' + #13 + #10 +                                   //
+    '  try {' + #13 + #10 +                                                //
+    '    document.getElementById("load-file-btn").click();' + #13 + #10 +  //
+    '    loadPlantUMLDiagram("");' + #13 + #10 +                           //
     '    msg=msg+" SUCCEEDED";' + #13 + #10 +                              //
     '    succeed=true;' + #13 + #10 +                                      //
     '  } catch (error) {' + #13 + #10 +                                    //
@@ -408,15 +541,23 @@ begin
     Edge.ExecuteScript(Script);
     Result := True;
   except
-    on E: Exception do
+    on e: Exception do
   end;
+end;
+
+procedure TfrmPlantUMLEditor.TimerBackupTimer(Sender: TObject);
+begin
+  TimerBackup.Enabled := False;
+  RunJavaScript('SendPlantUmlFileToDelphi();', 'SendPlantUmlFileToDelphi');
 end;
 
 procedure TfrmPlantUMLEditor.TimerRestoreClipboardTimer(Sender: TObject);
 begin
   TimerRestoreClipboard.Enabled := False;
   If Trim(sgClipboardWas) <> '' Then
+  Begin
     Clipboard.AsText := sgClipboardWas;
+  End;
 end;
 
 procedure TfrmPlantUMLEditor.TimerTimer(Sender: TObject);

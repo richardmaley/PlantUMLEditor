@@ -26,6 +26,7 @@ Var
   { (* }
   boAllProjDirRSubDir   : Boolean = False;
   boActivateProfiler    : Boolean = False;
+  boAutoBackup          : Boolean = True;
   boDebug               : Boolean = False;
   boDirBackup           : Boolean = False;
   boDirBin              : Boolean = False;
@@ -103,6 +104,7 @@ Var
   FileLast              : String  = '';
   FileLastHTML          : String  = '';
   inTestDataFilterCount : Integer = 1;
+  inBackupFrequencyMins : Integer = 1;
   IniData               : TStringList;
   Log                   : TStringList;
   { *) }
@@ -703,27 +705,29 @@ DirDFMInfoCOMERCIAL                                                           :=
 DirDFMInfoCONTA                                                               := DirDFMInfo + 'CONTA\';
 DirDFMInfoPOSVENTA                                                            := DirDFMInfo + 'POSVENTA\';
 DirDFMInfoTEST                                                                := DirDFMInfo + 'TEST\';
-
 // End Directory Modifications
+
 // Start Directory Creation Booleans
 { example set boDirDB:=True to create DirDB directory }
-boDirCode:=True;
-boDirImages:=True;
-// boDirSQL:=True;
-// boDirTestData:=True;
-// boDirToolbar:=True;
-// boDirXMLDocs:=True;
-// boDirXMLDocs:=True;
-//boDirDB           := True;
 //boDirBin            := True;
+//boDirDB           := True;
 //boDirHelp         := True;
-boDirReports      := True;
 //boDirResources    := True;
 //boDirResUtilities := True;
 //boDirSearches     := True;
-boDirSource       := True;
 //boDirSQL          := True;
 //boDirTestData     := True;
+//boDirTestData:=True;
+//boDirToolbar:=True;
+//boDirXMLDocs:=True;
+//boDirXMLDocs:=True;
+boAutoBackup:=True;
+boDirBackup:=True;
+boDirCode:=True;
+boDirImages:=True;
+boLog:=True;
+boDirReports      := True;
+boDirSource       := True;
 // Start Directory Creation Booleans
 
 If boDirBackup           Then If Not DirectoryExists(DirBackup            ) Then ForceDirectories(DirBackup          );//
@@ -755,6 +759,7 @@ IniData.LoadFromFile(FileIni);
 // Update From Ini - not project directories
 UpdateVarFromIni(boActivateProfiler, 'boActivateProfiler', IniData);
 UpdateVarFromIni(boAllProjDirRSubDir, 'boAllProjDirRSubDir', IniData);
+UpdateVarFromIni(boAutoBackup, 'boAutoBackup', IniData);
 UpdateVarFromIni(boDebug, 'boDebug', IniData);
 UpdateVarFromIni(boDirBackup, 'boDirBackup', IniData);
 UpdateVarFromIni(boDirDB, 'boDirDB', IniData);
@@ -781,6 +786,7 @@ UpdateVarFromIni(boRunDFMInfoTests, 'boRunDFMInfoTests', IniData);
 UpdateVarFromIni(boUseAnlyzdDFMInfoData, 'boUseAnlyzdDFMInfoData', IniData);
 UpdateVarFromIni(DirAppDataCommon, 'DirAppDataCommon', IniData);
 UpdateVarFromIni(DirAppDataLocal, 'DirAppDataLocal', IniData);
+UpdateVarFromIni(DirBackup, 'DirBackup', IniData);
 UpdateVarFromIni(DirCommonFiles, 'DirCommonFiles', IniData);
 UpdateVarFromIni(DirInternetCache, 'DirInternetCache', IniData);
 UpdateVarFromIni(DirInternetCookies, 'DirInternetCookies', IniData);
@@ -794,6 +800,7 @@ UpdateVarFromIni(DirSearches, 'DirSearches', IniData);
 UpdateVarFromIni(DirSystem32, 'DirSystem32', IniData);
 UpdateVarFromIni(DirWindows, 'DirWindows', IniData);
 UpdateVarFromIni(FileLast, 'FileLast', IniData);
+UpdateVarFromIni(inBackupFrequencyMins, 'inBackupFrequencyMins', IniData);
 UpdateVarFromIni(inTestDataFilterCount, 'inTestDataFilterCount', IniData);
 
 // Update From Ini - project directories
@@ -834,8 +841,11 @@ UpdateIniFromVar(DirSystem32, '//DirSystem32', IniData);
 UpdateIniFromVar(DirWindows, '//DirWindows', IniData);
 
 // Update Ini:
+UpdateIniFromVar(boAutoBackup, 'boAutoBackup', IniData);
 UpdateIniFromVar(boLoadTestData, 'boLoadTestData', IniData);
 UpdateIniFromVar(boLog, 'boLog', IniData);
+UpdateIniFromVar(DirBackup, 'DirBackup', IniData);
+UpdateIniFromVar(inBackupFrequencyMins, 'inBackupFrequencyMins', IniData);
 UpdateIniFromVar(inTestDataFilterCount, 'inTestDataFilterCount', IniData);
 { *) }
 IniData.Sort();

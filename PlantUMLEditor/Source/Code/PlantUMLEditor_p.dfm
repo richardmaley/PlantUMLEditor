@@ -28,6 +28,7 @@ object frmPlantUMLEditor: TfrmPlantUMLEditor
     TargetCompatibleBrowserVersion = '117.0.2045.28'
     UserDataFolder = '%LOCALAPPDATA%\bds.exe.WebView2'
     OnNavigationCompleted = EdgeNavigationCompleted
+    OnWebMessageReceived = EdgeWebMessageReceived
   end
   object pnlFileName: TPanel
     Left = 0
@@ -37,6 +38,7 @@ object frmPlantUMLEditor: TfrmPlantUMLEditor
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 1
+    Visible = False
     DesignSize = (
       1057
       35)
@@ -48,7 +50,6 @@ object frmPlantUMLEditor: TfrmPlantUMLEditor
       Anchors = [akLeft, akTop, akRight]
       ReadOnly = True
       TabOrder = 0
-      Visible = False
     end
   end
   object Timer: TTimer
@@ -62,5 +63,12 @@ object frmPlantUMLEditor: TfrmPlantUMLEditor
     OnTimer = TimerRestoreClipboardTimer
     Left = 376
     Top = 424
+  end
+  object TimerBackup: TTimer
+    Enabled = False
+    Interval = 15000
+    OnTimer = TimerBackupTimer
+    Left = 640
+    Top = 264
   end
 end

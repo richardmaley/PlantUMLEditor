@@ -3,10 +3,12 @@ unit PUmlExamples;
 interface
 
 Function SaveThemedExamplesToDisk(ExamplesDir: String): Boolean;
+Function SaveDiagramTypesToDisk(ImagesDir: String): Boolean;
 
 implementation
 
 Uses
+  ads.Globals,
   System.Classes,
   System.SysUtils,
   Vcl.Dialogs,
@@ -63,6 +65,7 @@ Type
   TTextToDelphiArray = Array Of TTextToDelphi;
 
 Const
+  UnitName='PUmlExamples';
   ThemedExamples = '' + #13 + #10 +                                                           //
     'PlantUmlExamples' + #13 + #10 +                                                          //
     'Files' + #13 + #10 +                                                                     //
@@ -113,7 +116,7 @@ Const
     '//{zjq}' + #13 + #10 +                                                                   //
     '//  CdsHooksPatientView.puml  Top' + #13 + #10 +                                         //
     '@startuml' + #13 + #10 +                                                                 //
-    '' + #13 + #10 +                                                                          //
+    '!Diagram = "activity"' + #13 + #10 +                                                                          //
     'title: EHR\npatient-view\nCDS-Hooks\nActivity Diagram' + #13 + #10 +                     //
     '|EHR GUI|' + #13 + #10 +                                                                 //
     'start' + #13 + #10 +                                                                     //
@@ -1982,8 +1985,6 @@ Begin
     CaseSensitive := True;
     found         := True;
     Source        := lst.Text;
-    // Token1 := '//{zjq}';
-    // Token2 := '//{qjz}';
     i := 1;
     SetLength(TextToDelphiArray, 0);
     While found Do
@@ -2037,21 +2038,25 @@ End;
 
 Function SaveThemedExamplesToDisk(ExamplesDir: String): Boolean;
 Var
+  boFilesMissing: Boolean;
   error         : String;
+  FileList      : TStringlist;
+  i             : Integer;
+  ProcName      : String;
+  sgMessage     : String;
   sgSourceData  : String;
   Token1        : String;
   Token2        : String;
-  FileList      : TStringlist;
-  boFilesMissing: Boolean;
-  i             : Integer;
 Begin
-  Result   := False;
   Token1   := '//{zjq}';
   Token2   := '//{qjz}';
+  ProcName := 'SaveThemedExamplesToDisk';
   error    := '';
   FileList := TStringlist.Create();
   Try
+    {$WARNINGS OFF}
     ExamplesDir  := System.SysUtils.IncludeTrailingBackslash(ExamplesDir);
+    {$WARNINGS ON}
     sgSourceData := ThemedExamples;
     GetFileList(sgSourceData, FileList);
     boFilesMissing := Not System.SysUtils.DirectoryExists(ExamplesDir);
@@ -2072,7 +2077,10 @@ Begin
     Begin
       Result := CreateFilesFromText(sgSourceData, ExamplesDir, Token1, Token2, error);
       If error <> '' Then
-        ShowMessage(error);
+      Begin
+        sgMessage:=error;
+        LogMessage(UnitName, ProcName, sgMessage);
+      End;
     End
     Else
     Begin
@@ -2098,6 +2106,53 @@ End;
 Function TTextToDelphi.toString: String;
 Begin
   Result := 'FileExt =' + FileExt + #13 + #10 + 'FileName=' + FileName + #13 + #10 + 'FileBody=' + FileBody + #13 + #10 + 'Raw     =' + Raw + #13 + #10;
+End;
+
+Function SaveDiagramTypesToDisk(ImagesDir: String): Boolean;
+Var
+  s: String;
+Begin
+  Result:=False;
+  If FileExists(ImagesDir+'Diagram_Types.txt') Then Exit;
+  s:=
+    '''''
+    !DIAGRAM = "sequence"
+
+    Here are the possible values
+    activity
+    archimate
+    c4 (for C4 model diagrams)
+    class
+    component
+    deployment
+    dot (for Graphviz DOT diagrams)
+    entity
+    er (Entity-Relationship diagrams)
+    flowchart
+    gantt
+    git
+    journey
+    json
+    math (for mathematical diagrams)
+    mindmap
+    network
+    object
+    pie
+    salt
+    sdl (Specification and Description Language)
+    sequence
+    state
+    timing
+    tree
+    usecase
+    venn
+    wbs
+    wbs (Work Breakdown Structure)
+    wireframe
+    yaml
+    ''''';
+  StrToFile(s,DirImages+'Diagram_Types.txt');
+  Result:=True;
 End;
 
 end.

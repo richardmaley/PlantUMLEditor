@@ -312,7 +312,7 @@ Const Html=
            .ace_bracket {
            font-weight: bold;
            }
-      .topbutton{
+           .topbutton{
            height:25px;
            width:125px;
            padding: 4px 8px;
@@ -333,13 +333,16 @@ Const Html=
         <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css">
      </head>
      <body onload="brython()">
-        <div id="not_ace_container">
-               <!-- Button to load with an icon -->
-              <button class="topbutton" id="load-file-btn" width="100px" Title="Load a diagram from file">
-              <i class="fas fa-folder-open"></i> Select File
-              </button>
-        </div>
-        <div id="external_container">
+      <div id="not_ace_container">
+            <!-- Button to load with an icon -->
+            <button class="topbutton" id="load-file-btn" name="load-file-btn" width="100px" Title="Load a diagram from file">
+            <i class="fas fa-folder-open"></i> Select File
+            </button>
+            &nbsp;&nbsp;&nbsp;
+          <label style="font-family: sans-serif,Helvetica,Arial;font-size: 14px;" for="filepath">File Path:</label>
+          <input style="font-family: sans-serif,Helvetica,Arial;font-size: 14px;" type="text" id="filepath" name="filepath"  maxlength="200" size="100" readonly>
+      </div>
+      <div id="external_container">
            <div id="container">
               <div id="cola">
               </div>
@@ -870,61 +873,128 @@ Const Html=
       <input type="file" id="file-input" style="display: none;" accept=".puml,.pu,.plantuml,.iuml">
 
       <script>
-        // Function to load and display a PlantUML diagram from a known file path
-        function loadPlantUMLDiagram(filePath) {
-            fetch(filePath)
-                .then(response => {
-                    if (!response.ok) {
-                        // If the file does not exist, fail silently
-                        return;
-                    }
-                    return response.text();
-                })
-                .then(content => {
-                    if (content) {
-                        // Set the content in the editor
-                        const editor = window.ace.edit("editor");
-                        editor.setValue(content, 1); // Overwrite all content with the file content, and place the cursor at the end
-                        // Update the PlantUML diagram
-                        image_update(text_diagram_encoded);
-                    }
-                })
-                .catch(error => {
-                    // Handle any errors silently
-                    console.error('Error loading file:', error);
-                });
+          // Function to load and display a PlantUML diagram from a known file path
+          function loadPlantUMLDiagram(filePath) {
+              fetch(filePath)
+                  .then(response => {
+                      if (!response.ok) {
+                          // If the file does not exist, fail silently
+                          return;
+                      }
+                      return response.text();
+                  })
+                  .then(content => {
+                      if (content) {
+                          // Set the content in the editor
+                          const editor = window.ace.edit("editor");
+                          editor.setValue(content, 1); // Overwrite all content with the file content, and place the cursor at the end
+                          // Update the PlantUML diagram
+                          image_update(text_diagram_encoded);
+                      }
+                  })
+                  .catch(error => {
+                      // Handle any errors silently
+                      console.error('Error loading file:', error);
+                  });
+          }
+
+          // Function to handle file selection
+          function handleFileSelect(event) {
+              const fileInput = document.getElementById('file-input');
+              fileInput.click(); // Trigger the file input dialog
+          }
+
+          // Function to read the selected file
+          function readFile(event) {
+              const file = event.target.files[0];
+              if (file) {
+                  const reader = new FileReader();
+                  reader.onload = function(e) {
+                      const content = e.target.result;
+                      // Set the content in the editor
+                      const editor = window.ace.edit("editor");
+                      editor.setValue(content, 1); // Overwrite all content with the file content, and place the cursor at the end
+                      // Update the filepath input field with the file name
+                      document.getElementById('filepath').value = file.name;
+                  };
+                  reader.readAsText(file);
+              }
+              image_update(text_diagram_encoded);
+          }
+
+      function getPlantUmlFile_Code() {
+        let content = "";
+        const editor = window.ace.edit("editor");
+        PlantUmlFile.Code=editor.getValue(content, 1);
+        console.log(PlantUmlFile.Code);
+        return PlantUmlFile.Code;
+      }
+
+      function getPlantUmlFile_FileName() {
+        const filePathInput = document.getElementById('filepath');
+        PlantUmlFile.FileName=filePathInput.value;
+        return PlantUmlFile.FileName;
+      }
+
+      function getPlantUmlFile() {
+      PlantUmlFile.Title="PlantUmlFile";
+        getPlantUmlFile_Code();
+        getPlantUmlFile_FileName();
+        console.log(PlantUmlFile);
+        return PlantUmlFile;
+      }
+
+      function clickCopyButton() {
+        var copyButton = document.getElementById('copy-btn');
+        if (copyButton) {
+          copyButton.click();
+        } else {
+          console.error('Copy button not found!');
         }
+      }
 
-        // Example usage:
-        // loadPlantUMLDiagram('/path/to/your/file.puml');
-
-        // Function to handle file selection
-        function handleFileSelect(event) {
-            const fileInput = document.getElementById('file-input');
-            fileInput.click(); // Trigger the file input dialog
+      function copyFilePathToClipboard() {
+        var filePathInput = document.getElementById('filepath');
+        console.error('copyFilePathToClipboard atthe top');
+        if (filePathInput) {
+          filePathInput.select();
+          filePathInput.setSelectionRange(0, 99999); // For mobile devices
+          document.execCommand('copy');
+        } else {
+          console.error('File path input not found!');
         }
+      }
 
-        // Function to read the selected file
-        function readFile(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const content = e.target.result;
-                    // Set the content in the editor
-                    const editor = window.ace.edit("editor");
-                    editor.setValue(content, 1); // Overwrite all content with the file content, and place the cursor at the end
-                };
-                reader.readAsText(file);
+      const PlantUmlFile = {
+      Title: "PlantUmlFile",
+        FileName: "",
+        Code: ""
+      };
+
+      function SendPlantUmlFileToDelphi() {
+        getPlantUmlFile();
+      var message = JSON.stringify(PlantUmlFile);
+        function tryPostMessage(message) {
+            if (window.chrome.webview && window.chrome.webview.postMessage) {
+                window.chrome.webview.postMessage(message); // Send the message back to the Delphi application
+            } else {
+                setTimeout(function() {
+                    tryPostMessage(message);
+                }, 100); // Retry after 100 milliseconds
             }
-            image_update(text_diagram_encoded);
         }
 
-        // Bind the file input change event to the readFile function
-        document.getElementById('file-input').addEventListener('change', readFile, false);
+        if (message) {
+            tryPostMessage(message);
+        }
+      }
 
-        // Bind the handleFileSelect function to the "load-file-btn" button
-        document.getElementById('load-file-btn').addEventListener('click', handleFileSelect, false);
+      // Bind the file input change event to the readFile function
+      document.getElementById('file-input').addEventListener('change', readFile, false);
+
+      // Bind the handleFileSelect function to the "load-file-btn" button
+      document.getElementById('load-file-btn').addEventListener('click', handleFileSelect, false);
+
       </script>
      </body>
   </html>
@@ -939,8 +1009,8 @@ Begin
   Result:=False;
   If Trim(FileName)='' Then Exit;
   sgDT := FormatDateTime('YYYYMMDDHHNNSS',now());
-  BackupIfNeeded(FileName,DirReports);
- 
+  BackupIfNeeded(FileName,DirBackup);
+
   If Not FileExists(FileName) Then
   Begin
   sgDir:=ExtractFilePath(FileName);
