@@ -114,61 +114,264 @@ Const
     '43  Themed_yaml-2.puml  ' + #13 + #10 +                                                  //
     '' + #13 + #10 +                                                                          //
     '//{zjq}' + #13 + #10 +                                                                   //
-    '//  CdsHooksPatientView.puml  Top' + #13 + #10 +                                         //
-    '@startuml' + #13 + #10 +                                                                 //
-    '!Diagram = "activity"' + #13 + #10 +                                                                          //
-    'title: EHR\npatient-view\nCDS-Hooks\nActivity Diagram' + #13 + #10 +                     //
-    '|EHR GUI|' + #13 + #10 +                                                                 //
-    'start' + #13 + #10 +                                                                     //
-    'repeat' + #13 + #10 +                                                                    //
-    ':Clinician\nchanges\npatient;' + #13 + #10 +                                             //
-    'if (   If Business Rules and' + #13 + #10 +                                              //
-    '    filters determine' + #13 + #10 +                                                     //
-    '    CDS-Hooks are not' + #13 + #10 +                                                     //
-    '    required now) then (  true   )' + #13 + #10 +                                        //
-    '  stop' + #13 + #10 +                                                                    //
-    'else ( false)' + #13 + #10 +                                                             //
-    '  :EHR makes a REST request for' + #13 + #10 +                                           //
-    '  patient-view hook data for the' + #13 + #10 +                                          //
-    '  current patient;' + #13 + #10 +                                                        //
-    'endif' + #13 + #10 +                                                                     //
-    '|#AntiqueWhite|CDS-Hooks Service|' + #13 + #10 +                                         //
-    ':Patient-view hook receives a' + #13 + #10 +                                             //
-    'REST request for CDS-Hook cards;' + #13 + #10 +                                          //
-    ':A JSON response is prepared and' + #13 + #10 +                                          //
-    'returned to EHR.  This response' + #13 + #10 +                                           //
-    'includes an array of CDS-Hook' + #13 + #10 +                                             //
-    'cards.;' + #13 + #10 +                                                                   //
-    '|EHR GUI|' + #13 + #10 +                                                                 //
-    'repeat while (Has patient\ncontext changed) not (no)' + #13 + #10 +                      //
-    'if (CDS-Hook response\nhas an empty array\nof CDS-Hook cards) then (true)' + #13 + #10 + //
-    '  :The clinician\nwork-flow\ncontinues\nuninterrupted;' + #13 + #10 +                    //
-    '  stop' + #13 + #10 +                                                                    //
-    'else (false)' + #13 + #10 +                                                              //
-    ':*EHR displays a stay-on-top\nnon-modal dialog to present\nCDS-Hooks cards to the clinician\nfor review and action.\n*The dialog has an embedded\nEdge browser hosting a React\nweb application.; ' + #13 + #10 + //
-    '|EHR web App|' + #13 + #10 + //
-    '    :*React application initializes\nwith CDS-Hook cards.\n*The cards are presented sorted\nmost important to least important.\n*All 508 regulations need to be\ncomplied with.\n*The dialog has a list of card titles\non the left and a card viewing area\non the right.\n*The current card selection is\nhighlighted in the list on the left.\n*Card importance is highlighted in\nthe list on the left.;'
-    + #13 + #10 +                                                            //
-    'while (Are there more\ncards to process?) is (Next Card)' + #13 + #10 + //
-    'if (clinician wants to stop) then (true)' + #13 + #10 +                 //
-    '  |EHR GUI|' + #13 + #10 +                                              //
-    '  :Clinician closes\nthe dialog;' + #13 + #10 +                         //
-    '  stop' + #13 + #10 +                                                   //
-    'else (false)' + #13 + #10 +                                             //
-    '|EHR web App|' + #13 + #10 +                                            //
-    '  :*Clinician reviews next card.\n*Action is recorded as:\n**none,\n**read,\n**accepted, or\n**rejected.;' + #13 + #10 + //
-    'endif ' + #13 + #10 +                                        //
-    '  |EHR web App|' + #13 + #10 +                               //
-    '  :Card action is sent to\nCDS-Hooks Service;' + #13 + #10 + //
-    '  :Next Card;' + #13 + #10 +                                 //
-    '  backward:again;' + #13 + #10 +                             //
-    'endwhile (No more cards)' + #13 + #10 +                      //
-    '|EHR GUI|' + #13 + #10 +                                     //
-    ':Clinician closes\nthe dialog;' + #13 + #10 +                //
-    'stop' + #13 + #10 +                                          //
-    '''header: patient-view' + #13 + #10 +                        //
-    '''caption patient-view' + #13 + #10 +                        //
-    '@enduml' + #13 + #10 +                                       //
+    '//  CdsHooksPatientView.puml  Top' + #13 + #10 +
+    '@startuml'+#13+#10+//
+    '!Diagram = "activity"'+#13+#10+//
+    '<style>'+#13+#10+//
+    'root {'+#13+#10+//
+    '  --default-BackGroundColor: White Smoke;'+#13+#10+//
+    '  --default-DiagonalCorner: 0;'+#13+#10+//
+    '  --default-FontName: SansSerif;'+#13+#10+//
+    '  --default-FontSize: 14;'+#13+#10+//
+    '  --default-FontSize-Title: 24;'+#13+#10+//
+    '  --default-LineThickness: 2.0;'+#13+#10+//
+    '  --default-note-BackgroundColor: #white/LemonChiffon;'+#13+#10+//
+    '  --default-RoundCorner: 25;'+#13+#10+//
+    '  --default-Shadowing:3.0;'+#13+#10+//
+    '  BackGroundColor: var(--default-BackGroundColor);'+#13+#10+//
+    '  DiagonalCorner: var(--default-DiagonalCorner);'+#13+#10+//
+    '  FontColor black'+#13+#10+//
+    '  FontName: var(--default-FontName);'+#13+#10+//
+    '  FontSize: var(--default-FontSize);'+#13+#10+//
+    '  FontStyle plain'+#13+#10+//
+    '  HorizontalAlignment left'+#13+#10+//
+    '  HyperLinkColor blue'+#13+#10+//
+    '  HyperLinkUnderlineThickness 1'+#13+#10+//
+    '  LineColor black'+#13+#10+//
+    '  LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '  RoundCorner: var(--default-RoundCorner);'+#13+#10+//
+    '  Shadowing: 0.0;'+#13+#10+//
+    '  arrow {'+#13+#10+//
+    '    FontColor black'+#13+#10+//
+    '    FontName: var(--default-FontName);'+#13+#10+//
+    '    FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    FontStyle Bold'+#13+#10+//
+    '    LineColor black'+#13+#10+//
+    '    LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '  }'+#13+#10+//
+    '  caption {'+#13+#10+//
+    '    FontColor black'+#13+#10+//
+    '    FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    FontStyle Bold'+#13+#10+//
+    '    LineColor transparent'+#13+#10+//
+    '    Margin 5'+#13+#10+//
+    '    Padding 5'+#13+#10+//
+    '  }'+#13+#10+//
+    '  footer {'+#13+#10+//
+    '    BackGroundColor transparent'+#13+#10+//
+    '    FontColor black'+#13+#10+//
+    '    FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    FontStyle bold'+#13+#10+//
+    '    HorizontalAlignment right'+#13+#10+//
+    '    LineColor transparent'+#13+#10+//
+    '    LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '  }'+#13+#10+//
+    '  group {'+#13+#10+//
+    '    BackgroundColor #white/Aqua'+#13+#10+//
+    '    FontColor Blue'+#13+#10+//
+    '    FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    FontStyle Bold'+#13+#10+//
+    '    LineColor Blue'+#13+#10+//
+    '    LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '    RoundCorner: var(--default-RoundCorner);'+#13+#10+//
+    '    '' Shadowing: 3.0;'+#13+#10+//
+    '                Shadowing: var(--default-Shadowing);'+#13+#10+//
+    '    package {'+#13+#10+//
+    '      LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '      LineColor black'+#13+#10+//
+    '    }'+#13+#10+//
+    '    folder {'+#13+#10+//
+    '      LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '      LineColor black'+#13+#10+//
+    '    }'+#13+#10+//
+    '  }'+#13+#10+//
+    '  groupHeader {'+#13+#10+//
+    '    BackGroundColor white'+#13+#10+//
+    '    FontColor blue'+#13+#10+//
+    '    FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    FontStyle bold'+#13+#10+//
+    '    LineColor black'+#13+#10+//
+    '    LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '  }  '+#13+#10+//
+    '  header {'+#13+#10+//
+    '    BackGroundColor transparent'+#13+#10+//
+    '    FontColor black'+#13+#10+//
+    '    FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    FontStyle bold'+#13+#10+//
+    '    HorizontalAlignment right'+#13+#10+//
+    '    LineColor transparent'+#13+#10+//
+    '    LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '  }'+#13+#10+//
+    '  note {'+#13+#10+//
+    '    FontColor Blue'+#13+#10+//
+    '                FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    LineColor Navy'+#13+#10+//
+    '                LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '    BackGroundColor:var(--default-note-BackgroundColor);'+#13+#10+//
+    '  }'+#13+#10+//
+    '  swimlane {'+#13+#10+//
+    '    BackgroundColor transparent'+#13+#10+//
+    '    FontColor black'+#13+#10+//
+    '  } '+#13+#10+//
+    '  title {'+#13+#10+//
+    '    BackGroundColor transparent'+#13+#10+//
+    '    FontColor black'+#13+#10+//
+    '    FontSize:: var(default-FontSize-Title);'+#13+#10+//
+    '    FontStyle bold'+#13+#10+//
+    '    HorizontalAlignment center'+#13+#10+//
+    '    LineColor transparent'+#13+#10+//
+    '  }  '+#13+#10+//
+    '}'+#13+#10+//
+    'activityDiagram {'+#13+#10+//
+    '  DiagonalCorner: var(--default-DiagonalCorner);'+#13+#10+//
+    '  FontName: var(--default-FontName);'+#13+#10+//
+    '  FontSize:: var(--default-FontSize);'+#13+#10+//
+    '  FontStyle plain'+#13+#10+//
+    '  HorizontalAlignment left'+#13+#10+//
+    '  LineColor black'+#13+#10+//
+    '  LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '  RoundCorner: var(--default-RoundCorner);'+#13+#10+//
+    '  activity {'+#13+#10+//
+    '    BackgroundColor #white/palegreen'+#13+#10+//
+    '    FontColor black'+#13+#10+//
+    '    FontName: var(--default-FontName);'+#13+#10+//
+    '    FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    FontStyle Bold'+#13+#10+//
+    '    LineColor black'+#13+#10+//
+    '    LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '    RoundCorner: var(--default-RoundCorner);'+#13+#10+//
+    '    ''Shadowing: 3.0;'+#13+#10+//
+    '    Shadowing: var(--default-Shadowing);'+#13+#10+//
+    '  }'+#13+#10+//
+    '  diamond {'+#13+#10+//
+    '    BackgroundColor #white/yellow'+#13+#10+//
+    '    BorderColor black'+#13+#10+//
+    '    FontColor Black'+#13+#10+//
+    '    FontName: var(--default-FontName);'+#13+#10+//
+    '    FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    FontStyle Bold'+#13+#10+//
+    '    LineColor black'+#13+#10+//
+    '    LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '    ''Shadowing: 3.0;'+#13+#10+//
+    '    Shadowing: var(--default-Shadowing);'+#13+#10+//
+    '  }'+#13+#10+//
+    '  end {'+#13+#10+//
+    '    LineColor red'+#13+#10+//
+    '  }'+#13+#10+//
+    '  card {'+#13+#10+//
+    '    BackgroundColor #white/Aqua'+#13+#10+//
+    '    FontColor Blue'+#13+#10+//
+    '    FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    FontStyle Bold'+#13+#10+//
+    '    LineColor Blue'+#13+#10+//
+    '    LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '    RoundCorner: var(--default-RoundCorner);'+#13+#10+//
+    '    ''Shadowing: 3.0;  '+#13+#10+//
+    '    Shadowing: var(--default-Shadowing);'+#13+#10+//
+    '  }  '+#13+#10+//
+    '  package {'+#13+#10+//
+    '    BackgroundColor #white/Aqua'+#13+#10+//
+    '    FontColor Blue'+#13+#10+//
+    '    FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    FontStyle Bold'+#13+#10+//
+    '    LineColor Blue'+#13+#10+//
+    '    LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '    RoundCorner: var(--default-RoundCorner);'+#13+#10+//
+    '    ''Shadowing: 3.0;  '+#13+#10+//
+    '    Shadowing: var(--default-Shadowing);'+#13+#10+//
+    '  }  '+#13+#10+//
+    '  partition {'+#13+#10+//
+    '    BackgroundColor #white/Aqua'+#13+#10+//
+    '    FontColor Blue'+#13+#10+//
+    '    FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    FontStyle Bold'+#13+#10+//
+    '    LineColor Blue'+#13+#10+//
+    '    LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '    RoundCorner: var(--default-RoundCorner);'+#13+#10+//
+    '    ''Shadowing: 3.0;  '+#13+#10+//
+    '    Shadowing: var(--default-Shadowing);'+#13+#10+//
+    '  }'+#13+#10+//
+    '  rectangle {'+#13+#10+//
+    '    BackgroundColor #white/Aqua'+#13+#10+//
+    '    FontColor Blue'+#13+#10+//
+    '    FontSize:: var(--default-FontSize);'+#13+#10+//
+    '    FontStyle Bold'+#13+#10+//
+    '    LineColor Blue'+#13+#10+//
+    '    LineThickness: var(--default-LineThickness);'+#13+#10+//
+    '    RoundCorner:0;'+#13+#10+//
+    '    ''RoundCorner: var(--default-RoundCorner);'+#13+#10+//
+    '    ''Shadowing: 3.0;  '+#13+#10+//
+    '    Shadowing: var(--default-Shadowing);'+#13+#10+//
+    '  }  '+#13+#10+//
+    '  start {'+#13+#10+//
+    '    BackgroundColor #white/green'+#13+#10+//
+    '    LineColor green'+#13+#10+//
+    '  }'+#13+#10+//
+    '  stop {'+#13+#10+//
+    '    BackgroundColor #white/red'+#13+#10+//
+    '    LineColor red'+#13+#10+//
+    '  }'+#13+#10+//
+    '  swimlane {'+#13+#10+//
+    '    BackgroundColor transparent'+#13+#10+//
+    '    FontColor black'+#13+#10+//
+    '    FontSize 20'+#13+#10+//
+    '    FontStyle bold'+#13+#10+//
+    '}'+#13+#10+//
+    'document {'+#13+#10+//
+    '   BackgroundColor transparent'+#13+#10+//
+    '}'+#13+#10+//
+    '</style>'+#13+#10+//
+    'title: EHR\npatient-view\nCDS-Hooks\nActivity Diagram'+#13+#10+//
+    '|EHR GUI|'+#13+#10+//
+    'start'+#13+#10+//
+    'repeat'+#13+#10+//
+    ':Clinician\nchanges\npatient;'+#13+#10+//
+    'if (   If Business Rules and'+#13+#10+//
+    '    filters determine'+#13+#10+//
+    '    CDS-Hooks are not'+#13+#10+//
+    '    required now) then (  true   )'+#13+#10+//
+    '  stop'+#13+#10+//
+    'else ( false)'+#13+#10+//
+    '  :EHR makes a REST request for'+#13+#10+//
+    '  patient-view hook data for the'+#13+#10+//
+    '  current patient;'+#13+#10+//
+    'endif'+#13+#10+//
+    '|#AntiqueWhite|CDS-Hooks Service|'+#13+#10+//
+    ':Patient-view hook receives a'+#13+#10+//
+    'REST request for CDS-Hook cards;'+#13+#10+//
+    ':A JSON response is prepared and'+#13+#10+//
+    'returned to EHR.  This response'+#13+#10+//
+    'includes an array of CDS-Hook'+#13+#10+//
+    'cards.;'+#13+#10+//
+    '|EHR GUI|'+#13+#10+//
+    'repeat while (Has patient\ncontext changed) not (no)'+#13+#10+//
+    'if (CDS-Hook response\nhas an empty array\nof CDS-Hook cards) then (true)'+#13+#10+//
+    '  :The clinician\nwork-flow\ncontinues\nuninterrupted;'+#13+#10+//
+    '  stop'+#13+#10+//
+    'else (false)'+#13+#10+//
+    ':*EHR displays a stay-on-top\nnon-modal dialog to present\nCDS-Hooks cards to the clinician\nfor review and action.\n*The dialog has an embedded\nEdge browser hosting a React\nweb application.; '+#13+#10+//
+    '|EHR web App|'+#13+#10+//
+    '    :*React application initializes\nwith CDS-Hook cards.\n*The cards are presented sorted\nmost important to least important.\n*All 508 regulations need to be\ncomplied with.\n*The dialog has a list of card titles\non the left and a card viewing area\non the right.\n*The current card selection is\nhighlighted in the list on the left.\n*Card importance is highlighted in\nthe list on the left.;'+#13+#10+//
+    'while (Are there more\ncards to process?) is (Next Card)'+#13+#10+//
+    'if (clinician wants to stop) then (true)'+#13+#10+//
+    '  |EHR GUI|'+#13+#10+//
+    '  :Clinician closes\nthe dialog;'+#13+#10+//
+    '  stop'+#13+#10+//
+    'else (false)'+#13+#10+//
+    '|EHR web App|'+#13+#10+//
+    '  :*Clinician reviews next card.\n*Action is recorded as:\n**none,\n**read,\n**accepted, or\n**rejected.;'+#13+#10+//
+    'endif '+#13+#10+//
+    '  |EHR web App|'+#13+#10+//
+    '  :Card action is sent to\nCDS-Hooks Service;'+#13+#10+//
+    '  :Next Card;'+#13+#10+//
+    '  backward:again;'+#13+#10+//
+    'endwhile (No more cards)'+#13+#10+//
+    '|EHR GUI|'+#13+#10+//
+    ':Clinician closes\nthe dialog;'+#13+#10+//
+    'stop'+#13+#10+//
+    '''header: patient-view'+#13+#10+//
+    '''caption patient-view'+#13+#10+//
+    '@enduml'+#13+#10+//
     '' + #13 + #10 +                                              //
     '' + #13 + #10 +                                              //
     '' + #13 + #10 +                                              //

@@ -333,15 +333,6 @@ Const Html=
         <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css">
      </head>
      <body onload="brython()">
-      <div id="not_ace_container">
-            <!-- Button to load with an icon -->
-            <button class="topbutton" id="load-file-btn" name="load-file-btn" width="100px" Title="Load a diagram from file">
-            <i class="fas fa-folder-open"></i> Select File
-            </button>
-            &nbsp;&nbsp;&nbsp;
-          <label style="font-family: sans-serif,Helvetica,Arial;font-size: 14px;" for="filepath">File Path:</label>
-          <input style="font-family: sans-serif,Helvetica,Arial;font-size: 14px;" type="text" id="filepath" name="filepath"  maxlength="200" size="100" readonly>
-      </div>
       <div id="external_container">
            <div id="container">
               <div id="cola">
@@ -356,23 +347,23 @@ Const Html=
            </div>
            <div id="footer">
               <!-- Button to copy the text with an icon -->
-              <button class="btn" id="copy-btn" Title="Copy the editor contents to the clipboard">
+              <button class="btn" id="copy-btn" Title="Copy the editor contents to the clipboard" hidden="hidden">
               <i class="fas fa-copy"></i> Copy
               </button>
               <!-- Button to paste the text with an icon -->
-              <button class="btn" id="paste-btn" Title="Paste the clipboard contents into the editor">
+              <button class="btn" id="paste-btn" Title="Paste the clipboard contents into the editor" hidden="hidden">
               <i class="fas fa-paste"></i> Paste
               </button>
               <!-- Button to save with an icon -->
-              <button class="btn" id="save-btn" Title="Save the current diagram">
+              <button class="btn" id="save-btn" Title="Save the current diagram" hidden="hidden">
               <i class="fas fa-save"></i> Save
               </button>
               <!-- Button to load with an icon -->
-              <button class="btn" id="load-btn" Title="Select a diagram">
+              <button class="btn" id="load-btn" Title="Select a diagram" hidden="hidden">
               <i class="fas fa-folder-open"></i> List
               </button>
               <!-- Toggle Button for Dark/Light Mode -->
-              <button class="btn" id="toggle-mode-btn" Title="Toggle Light/Dark Theme">
+              <button class="btn" id="toggle-mode-btn" Title="Toggle Light/Dark Theme" hidden="hidden">
               <i class="fas fa-adjust"></i> Mode
               </button>
               <!-- New Button to Update URL with an icon -->
@@ -390,8 +381,8 @@ Const Html=
               <!-- Hyperlink to ASCII Art image -->
               <a href="" target="_blank" id="ascii-link" title="Save the diagram as ASCII Art" style="margin-left: 15px;"><i class="fas fa-font"></i></a>
               <div class="tooltip-container">
-                 <input id="encoded-input" type="text" value="">
-                 <button class="decode-btn" id="decode-btn">
+                 <input id="encoded-input" type="text" value="" hidden="hidden">
+                 <button class="decode-btn" id="decode-btn" hidden="hidden">
                  <i class="fas fa-unlock-alt"></i> Decode
                  </button>
               </div>
@@ -870,57 +861,15 @@ Const Html=
 
         </script>
       <!-- Add a hidden file input element -->
-      <input type="file" id="file-input" style="display: none;" accept=".puml,.pu,.plantuml,.iuml">
+
 
       <script>
-          // Function to load and display a PlantUML diagram from a known file path
-          function loadPlantUMLDiagram(filePath) {
-              fetch(filePath)
-                  .then(response => {
-                      if (!response.ok) {
-                          // If the file does not exist, fail silently
-                          return;
-                      }
-                      return response.text();
-                  })
-                  .then(content => {
-                      if (content) {
-                          // Set the content in the editor
-                          const editor = window.ace.edit("editor");
-                          editor.setValue(content, 1); // Overwrite all content with the file content, and place the cursor at the end
-                          // Update the PlantUML diagram
-                          image_update(text_diagram_encoded);
-                      }
-                  })
-                  .catch(error => {
-                      // Handle any errors silently
-                      console.error('Error loading file:', error);
-                  });
-          }
-
-          // Function to handle file selection
-          function handleFileSelect(event) {
-              const fileInput = document.getElementById('file-input');
-              fileInput.click(); // Trigger the file input dialog
-          }
-
-          // Function to read the selected file
-          function readFile(event) {
-              const file = event.target.files[0];
-              if (file) {
-                  const reader = new FileReader();
-                  reader.onload = function(e) {
-                      const content = e.target.result;
-                      // Set the content in the editor
-                      const editor = window.ace.edit("editor");
-                      editor.setValue(content, 1); // Overwrite all content with the file content, and place the cursor at the end
-                      // Update the filepath input field with the file name
-                      document.getElementById('filepath').value = file.name;
-                  };
-                  reader.readAsText(file);
-              }
-              image_update(text_diagram_encoded);
-          }
+      let filepath="";
+      const PlantUmlFile = {
+        Title: "",
+        FileName: "",
+        Code: ""
+      };
 
       function getPlantUmlFile_Code() {
         let content = "";
@@ -931,49 +880,21 @@ Const Html=
       }
 
       function getPlantUmlFile_FileName() {
-        const filePathInput = document.getElementById('filepath');
-        PlantUmlFile.FileName=filePathInput.value;
+        PlantUmlFile.FileName=filepath;
         return PlantUmlFile.FileName;
       }
 
-      function getPlantUmlFile() {
-      PlantUmlFile.Title="PlantUmlFile";
+      function getPlantUmlFile(Title_) {
+        PlantUmlFile.Title=Title_;
         getPlantUmlFile_Code();
         getPlantUmlFile_FileName();
         console.log(PlantUmlFile);
         return PlantUmlFile;
       }
 
-      function clickCopyButton() {
-        var copyButton = document.getElementById('copy-btn');
-        if (copyButton) {
-          copyButton.click();
-        } else {
-          console.error('Copy button not found!');
-        }
-      }
-
-      function copyFilePathToClipboard() {
-        var filePathInput = document.getElementById('filepath');
-        console.error('copyFilePathToClipboard atthe top');
-        if (filePathInput) {
-          filePathInput.select();
-          filePathInput.setSelectionRange(0, 99999); // For mobile devices
-          document.execCommand('copy');
-        } else {
-          console.error('File path input not found!');
-        }
-      }
-
-      const PlantUmlFile = {
-      Title: "PlantUmlFile",
-        FileName: "",
-        Code: ""
-      };
-
-      function SendPlantUmlFileToDelphi() {
-        getPlantUmlFile();
-      var message = JSON.stringify(PlantUmlFile);
+      function File_SaveDetail(Title_) {
+        getPlantUmlFile(Title_);
+        var message = JSON.stringify(PlantUmlFile);
         function tryPostMessage(message) {
             if (window.chrome.webview && window.chrome.webview.postMessage) {
                 window.chrome.webview.postMessage(message); // Send the message back to the Delphi application
@@ -989,11 +910,45 @@ Const Html=
         }
       }
 
-      // Bind the file input change event to the readFile function
-      document.getElementById('file-input').addEventListener('change', readFile, false);
+      function File_BackUp() {
+        File_SaveDetail("File_BackUp");
+      }
 
-      // Bind the handleFileSelect function to the "load-file-btn" button
-      document.getElementById('load-file-btn').addEventListener('click', handleFileSelect, false);
+      function File_Save() {
+        File_SaveDetail("File_Save");
+      }
+
+      function File_SaveAs() {
+        File_SaveDetail("File_SaveAs");
+      }
+
+      function File_Load(PlantUmlFileJSON) {
+        // Check if the input is a valid JSON object or string
+        let parsedData;
+        if (typeof PlantUmlFileJSON === "string") {
+          try {
+            parsedData = JSON.parse(PlantUmlFileJSON); // Parse the JSON string
+          } catch (error) {
+            console.error("Invalid JSON string provided:", error);
+            return; // Exit the function if parsing fails
+          }
+        } else if (typeof PlantUmlFileJSON === "object" && PlantUmlFileJSON !== null) {
+          parsedData = PlantUmlFileJSON; // Use the object directly if it's already parsed
+        } else {
+          console.error("Input must be a JSON string or object.");
+          return; // Exit the function if the input is invalid
+        }
+
+        // Populate the PlantUmlFile object with the parsed data
+        if (parsedData.Title) PlantUmlFile.Title = parsedData.Title;
+        if (parsedData.FileName) PlantUmlFile.FileName = parsedData.FileName;
+        if (parsedData.Code){
+        PlantUmlFile.Code = parsedData.Code;
+      const editor = window.ace.edit("editor");
+          editor.setValue(PlantUmlFile.Code, 1); // Overwrite all content with the file content, and place the cursor at the end
+         }
+        console.log("PlantUmlFile populated successfully:", PlantUmlFile);
+      }
 
       </script>
      </body>

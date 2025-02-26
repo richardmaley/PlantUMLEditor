@@ -95,8 +95,6 @@ Function BackupIfNeeded(FileName, BackUpDir: String): Boolean;
     End;
   End;
 Var
-  boBackupNeeded: Boolean;
-  sgDt          : String;
   FileData: String;
   ShortFileName: String;
 Begin

@@ -25,7 +25,8 @@ Uses
   Vcl.Menus,
   Vcl.StdCtrls,
   Winapi.ActiveX,
-  Winapi.WebView2;
+  Winapi.WebView2, SVGIconImageListBase, SVGIconImageList, SVGIconImage,
+  Vcl.ExtDlgs;
 
 Type
   TPlantUMLFile = class
@@ -36,24 +37,40 @@ Type
   Public
     property Code    : String read FCode write FCode;
     property FileName: String read FFileName write FFileName;
-    property Title   : String read FTitle;
+    property Title   : String read FTitle write FTitle;
   end;
 
   TfrmPlantUMLEditor = Class(TForm)
     Edge: TEdgeBrowser;
-    edtFileName: TEdit;
-    pnlFileName: TPanel;
-    Timer: TTimer;
+    TimerDelayedLoad: TTimer;
     TimerBackup: TTimer;
-    TimerRestoreClipboard: TTimer;
+    MainMenu: TMainMenu;
+    File1: TMenuItem;
+    SaveAs1: TMenuItem;
+    Save1: TMenuItem;
+    Exit1: TMenuItem;
+    SaveDialog: TSaveDialog;
+    pnlHeader: TPanel;
+    SVGIconImageList1: TSVGIconImageList;
+    Panel1: TPanel;
+    Image1: TImage;
+    OpenTextFileDialog: TOpenTextFileDialog;
+    edtFileName: TEdit;
+    lblEdtFileName: TLabel;
+    btnSave: TPanel;
+    Image2: TImage;
     procedure EdgeNavigationCompleted(Sender: TCustomEdgeBrowser; IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
     procedure EdgeWebMessageReceived(Sender: TCustomEdgeBrowser; Args: TWebMessageReceivedEventArgs);
     Procedure FormActivate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure TimerBackupTimer(Sender: TObject);
-    procedure TimerRestoreClipboardTimer(Sender: TObject);
-    procedure TimerTimer(Sender: TObject);
+    procedure TimerDelayedLoadTimer(Sender: TObject);
+    procedure Save1Click(Sender: TObject);
+    procedure SaveAs1Click(Sender: TObject);
+    procedure Exit1Click(Sender: TObject);
+    procedure Panel1Click(Sender: TObject);
+    procedure btnSaveClick(Sender: TObject);
   Public
     inBackupRepeats : Integer;
     PlantUMLFile    : TPlantUMLFile;
@@ -61,9 +78,13 @@ Type
     sgBackupCode    : String;
     sgBackupFileName: String;
     sgClipboardWas  : String;
+    Function File_Save(): Boolean;
+    Function File_SaveAs(): Boolean;
+
+    Function Load_File(): Boolean;overload;
+    Function Load_File(FileName: String): Boolean;overload;
     Function GenThemes(): String;
     Function GenTPlantUMLFileAsJSON(): String;
-    Function LoadDiagram(FileName: String): Boolean;
     Function RunJavaScript(Script, ProcName: String): Boolean;
     Procedure GenTPlantUMLFileFromJSON(out PlantUMLFile: TPlantUMLFile; Json: String);
     Procedure ScriptTemplate();
@@ -234,27 +255,13 @@ Begin
   End;
 End;
 
-procedure TfrmPlantUMLEditor.EdgeNavigationCompleted(Sender: TCustomEdgeBrowser; IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
-Var
-  FileName: String;
+procedure TfrmPlantUMLEditor.btnSaveClick(Sender: TObject);
 begin
-  frmPleaseWait.Close;
-  If ParamCount > 0 Then
-  Begin
-    FileName := ParamStr(1);
-    If FileExists(FileName) Then
-    Begin
-      LoadDiagram(FileName);
-    End;
-  End
-  Else
-  Begin
-    FileName := FileLast;
-    If (Trim(FileName) <> '') And FileExists(FileName) Then
-    Begin
-      LoadDiagram(FileName);
-    End;
-  End;
+  File_Save();
+end;
+
+procedure TfrmPlantUMLEditor.EdgeNavigationCompleted(Sender: TCustomEdgeBrowser; IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
+begin
   ActiveControl := Edge;
   If boAutoBackup Then
   Begin
@@ -266,9 +273,11 @@ begin
         IniData.Values['inBackupFrequencyMins'] := '1';
       End;
     TimerBackup.Interval := inBackupFrequencyMins * 60 * 1000;
+//TimerBackup.Interval:=15000;
     If IniData.Values['boAutoBackup'] = 'TRUE' Then
       TimerBackup.Enabled := True;
   End;
+  TimerDelayedLoad.Enabled:=True;
 end;
 
 procedure TfrmPlantUMLEditor.EdgeWebMessageReceived(Sender: TCustomEdgeBrowser; Args: TWebMessageReceivedEventArgs);
@@ -288,13 +297,52 @@ begin
       begin
         Json    := TJSONValue.ParseJSONValue(JsonStr) as TJsonObject;
         sgTitle := Json.GetValue('Title').AsType<String>;
-        If sgTitle = 'PlantUmlFile' Then
+        If sgTitle = 'File_BackUp' Then
         Begin
           GenTPlantUMLFileFromJSON(PlantUMLFile, JsonStr);
           sgMessage := 'PlantUMLFile=' + #13 + #10 + 'Title=' + PlantUMLFile.Title + #13 + #10 + 'FileName=' + PlantUMLFile.FileName + #13 + #10 + 'Code=' + PlantUMLFile.Code + #13 + #10;
-          //LogMessage(UnitName, ProcName, sgMessage);
-          BackupIfNeeded(PlantUMLFile.Code, PlantUMLFile.FileName, DirBackup);
+          If Trim(PlantUMLFile.FileName)='' Then PlantUMLFile.FileName:='unknown.puml';
+          If Trim(PlantUMLFile.Code)<>'' Then
+          Begin
+            BackupIfNeeded(PlantUMLFile.Code, PlantUMLFile.FileName, DirBackup);
+          End;
           TimerBackup.Enabled := True;
+        End Else
+        If sgTitle = 'File_Save' Then
+        Begin
+          GenTPlantUMLFileFromJSON(PlantUMLFile, JsonStr);
+          sgMessage := 'PlantUMLFile=' + #13 + #10 + 'Title=' + PlantUMLFile.Title + #13 + #10 + 'FileName=' + PlantUMLFile.FileName + #13 + #10 + 'Code=' + PlantUMLFile.Code + #13 + #10;
+          If Trim(PlantUMLFile.FileName)='' Then PlantUMLFile.FileName:='unknown.puml';
+          If Trim(PlantUMLFile.Code)<>'' Then
+          Begin
+            SaveDialog.InitialDir:=DirImages;
+            SaveDialog.FileName:=PlantUMLFile.FileName;
+            If SaveDialog.Execute() Then
+            Begin
+              FileLast:=SaveDialog.FileName;
+              IniData.Values['FileLast']:=FileLast;
+              IniData.SaveToFile(FileIni);
+              StrToFile(PlantUMLFile.Code,FileLast);
+            End;
+          End;
+        End Else
+        If sgTitle = 'File_SaveAs' Then
+        Begin
+          GenTPlantUMLFileFromJSON(PlantUMLFile, JsonStr);
+          sgMessage := 'PlantUMLFile=' + #13 + #10 + 'Title=' + PlantUMLFile.Title + #13 + #10 + 'FileName=' + PlantUMLFile.FileName + #13 + #10 + 'Code=' + PlantUMLFile.Code + #13 + #10;
+          If Trim(PlantUMLFile.FileName)='' Then PlantUMLFile.FileName:='unknown.puml';
+          If Trim(PlantUMLFile.Code)<>'' Then
+          Begin
+            SaveDialog.InitialDir:=DirImages;
+            SaveDialog.FileName:=PlantUMLFile.FileName;
+            If SaveDialog.Execute() Then
+            Begin
+              FileLast:=SaveDialog.FileName;
+              IniData.Values['FileLast']:=FileLast;
+              IniData.SaveToFile(FileIni);
+              StrToFile(PlantUMLFile.Code,FileLast);
+            End;
+          End;
         End;
       end;
     End
@@ -310,6 +358,21 @@ begin
       LogMessage(UnitName, ProcName, sgMessage);
     End;
   End;
+end;
+
+procedure TfrmPlantUMLEditor.Exit1Click(Sender: TObject);
+begin
+  Close;
+end;
+
+function TfrmPlantUMLEditor.File_Save: Boolean;
+begin
+  Result:=RunJavaScript('File_Save();', 'File_Save');
+end;
+
+function TfrmPlantUMLEditor.File_SaveAs: Boolean;
+begin
+  Result:=RunJavaScript('File_SaveAs();', 'File_SaveAs');
 end;
 
 Procedure TfrmPlantUMLEditor.FormActivate(Sender: TObject);
@@ -478,40 +541,50 @@ begin
   PlantUMLFile := TJSON.JsonToObject<TPlantUMLFile>(Json, []);
 end;
 
-function TfrmPlantUMLEditor.LoadDiagram(FileName: String): Boolean;
+function TfrmPlantUMLEditor.Load_File(FileName: String): Boolean;
 Var
-  Script: String;
-  Path  : String;
+  JsonStr: string;
 begin
-  Result := False;
-  If Trim(FileName) = '' Then
-    Exit;
-  If Not FileExists(FileName) Then
-    Exit;
-  edtFileName.Text := FileName;
-  sgClipboardWas   := Clipboard.AsText;
-  Clipboard.AsText := FileName;
-  Path             := ExtractFilePath(FileName);
-  Path             := StringReplace(Path, '\', '/', [rfReplaceAll]);
-  FileName         := StringReplace(FileName, '\', '/', [rfReplaceAll]);
-  Script           := '  let msg="loadPlantUMLDiagram";' + #13 + #10 +     //
-    '  let succeed=false;' + #13 + #10 +                                   //
-    '  try {' + #13 + #10 +                                                //
-    '    document.getElementById("load-file-btn").click();' + #13 + #10 +  //
-    '    loadPlantUMLDiagram("");' + #13 + #10 +                           //
-    '    msg=msg+" SUCCEEDED";' + #13 + #10 +                              //
-    '    succeed=true;' + #13 + #10 +                                      //
-    '  } catch (error) {' + #13 + #10 +                                    //
-    '    msg=msg=msg+" FAILED";' + #13 + #10 +                             //
-    '    console.error(msg, error);' + #13 + #10 +                         //
-    '    console.error(msg+"ErrorName:", error.name);' + #13 + #10 +       //
-    '    console.error(msg+"ErrorMessage:", error.message);' + #13 + #10 + //
-    '    console.error(msg+"ErrorStack:", error.stack);' + #13 + #10 +     //
-    '    msg=msg+";Error="+error.message;' + #13 + #10 +                   //
-    '  }' + #13 + #10;                                                     //
-  Timer.Enabled := True;
-  Result        := RunJavaScript(Script, 'loadPlantUMLDiagram');
-  // Clipboard.AsText:=sgClipboardWas;
+  Result:=False;
+  If Trim(FileName)='' Then Exit;
+  If Not FileExists(FileName) Then Exit;
+  FileLast:=FileName;
+  IniData.Values['FileLast']:=FileLast;
+  IniData.SaveToFile(FileIni);
+  edtFileName.Text:=FileLast;
+  PlantUMLFile.Title:='File_Load';
+  PlantUMLFile.FileName:=FileLast;
+  PlantUMLFile.Code:=FileToStr(FileLast);
+  JsonStr:=TJson.ObjectToJsonString(PlantUMLFile,[joIndentCasePreserve]);
+  RunJavaScript('File_Load('+JsonStr+');', 'File_Load');
+  Result:=True;
+end;
+
+function TfrmPlantUMLEditor.Load_File: Boolean;
+Var
+  JsonStr: string;
+begin
+  Result:=False;
+  OpenTextFileDialog.InitialDir:=DirImages;
+  If OpenTextFileDialog.Execute() Then
+  Begin
+    Result:=Load_File(OpenTextFileDialog.FileName);
+  End;
+end;
+
+procedure TfrmPlantUMLEditor.Panel1Click(Sender: TObject);
+begin
+  Load_File();
+end;
+
+procedure TfrmPlantUMLEditor.Save1Click(Sender: TObject);
+begin
+  File_Save();
+end;
+
+procedure TfrmPlantUMLEditor.SaveAs1Click(Sender: TObject);
+begin
+  File_SaveAs();
 end;
 
 procedure TfrmPlantUMLEditor.ScriptTemplate;
@@ -548,25 +621,31 @@ end;
 procedure TfrmPlantUMLEditor.TimerBackupTimer(Sender: TObject);
 begin
   TimerBackup.Enabled := False;
-  RunJavaScript('SendPlantUmlFileToDelphi();', 'SendPlantUmlFileToDelphi');
+  RunJavaScript('File_BackUp();', 'File_BackUp');
 end;
 
-procedure TfrmPlantUMLEditor.TimerRestoreClipboardTimer(Sender: TObject);
+procedure TfrmPlantUMLEditor.TimerDelayedLoadTimer(Sender: TObject);
+Var
+  FileName: String;
 begin
-  TimerRestoreClipboard.Enabled := False;
-  If Trim(sgClipboardWas) <> '' Then
+  TimerDelayedLoad.Enabled := False;
+  frmPleaseWait.Close;
+  If ParamCount > 0 Then
   Begin
-    Clipboard.AsText := sgClipboardWas;
+    FileName := ParamStr(1);
+    If FileExists(FileName) Then
+    Begin
+      Load_File(FileName);
+    End;
+  End
+  Else
+  Begin
+    FileName := FileLast;
+    If (Trim(FileName) <> '') And FileExists(FileName) Then
+    Begin
+      Load_File(FileName);
+    End;
   End;
-end;
-
-procedure TfrmPlantUMLEditor.TimerTimer(Sender: TObject);
-begin
-  Timer.Enabled := False;
-  SimulateCtrlV;
-  SimulateEnter;
-  Application.ProcessMessages;
-  TimerRestoreClipboard.Enabled := True;
 end;
 
 End.
