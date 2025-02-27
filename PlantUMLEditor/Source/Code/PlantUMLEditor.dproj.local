@@ -3,11 +3,11 @@
 	<Transactions>
     <Transaction>2025/01/30 08:12:16.000.923,=S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\Unit1.pas</Transaction>
     <Transaction>2025/02/12 16:42:42.000.765,=S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\Unit2.pas</Transaction>
-    <Transaction>2025/02/12 16:45:54.000.580,S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\Unit2.pas=S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\PleaseWait.pas</Transaction>
-    <Transaction>2025/02/12 16:45:54.000.580,S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\Unit2.dfm=S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\PleaseWait.dfm</Transaction>
+    <Transaction>2025/02/12 16:45:54.000.580,S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\PleaseWait.pas=S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\Unit2.pas</Transaction>
+    <Transaction>2025/02/12 16:45:54.000.580,S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\PleaseWait.dfm=S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\Unit2.dfm</Transaction>
     <Transaction>2025/02/13 08:30:06.000.487,=S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\Unit2.pas</Transaction>
-    <Transaction>2025/02/13 08:30:42.000.434,S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\Unit2.pas=S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\PlantUMLHtml.pas</Transaction>
+    <Transaction>2025/02/13 08:30:42.000.434,S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\PlantUMLHtml.pas=S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\Unit2.pas</Transaction>
     <Transaction>2025/02/18 10:59:45.000.636,=S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\Unit1.pas</Transaction>
-    <Transaction>2025/02/18 11:00:40.000.135,S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\Unit1.pas=S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\PUmlExamples.pas</Transaction>
+    <Transaction>2025/02/18 11:00:40.000.135,S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\PUmlExamples.pas=S:\Documents\Delphi\Projects\Graphics\PlantUMLEditor\Source\Code\Unit1.pas</Transaction>
   </Transactions>
 </BorlandProject>

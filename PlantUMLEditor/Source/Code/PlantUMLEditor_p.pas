@@ -26,7 +26,7 @@ Uses
   Vcl.StdCtrls,
   Winapi.ActiveX,
   Winapi.WebView2, SVGIconImageListBase, SVGIconImageList, SVGIconImage,
-  Vcl.ExtDlgs;
+  Vcl.ExtDlgs, Vcl.Imaging.pngimage;
 
 Type
   TPlantUMLFile = class
@@ -59,6 +59,13 @@ Type
     lblEdtFileName: TLabel;
     btnSave: TPanel;
     Image2: TImage;
+    Button1: TButton;
+    btnSVG: TPanel;
+    Image3: TImage;
+    Panel2: TPanel;
+    Image4: TImage;
+    Panel3: TPanel;
+    Image5: TImage;
     procedure EdgeNavigationCompleted(Sender: TCustomEdgeBrowser; IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
     procedure EdgeWebMessageReceived(Sender: TCustomEdgeBrowser; Args: TWebMessageReceivedEventArgs);
     Procedure FormActivate(Sender: TObject);
@@ -71,6 +78,9 @@ Type
     procedure Exit1Click(Sender: TObject);
     procedure Panel1Click(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
+    procedure btnSVGClick(Sender: TObject);
+    procedure Panel2Click(Sender: TObject);
+    procedure Panel3Click(Sender: TObject);
   Public
     inBackupRepeats : Integer;
     PlantUMLFile    : TPlantUMLFile;
@@ -78,20 +88,24 @@ Type
     sgBackupCode    : String;
     sgBackupFileName: String;
     sgClipboardWas  : String;
+
     Function File_Save(): Boolean;
     Function File_SaveAs(): Boolean;
-
     Function Load_File(): Boolean;overload;
     Function Load_File(FileName: String): Boolean;overload;
     Function GenThemes(): String;
     Function GenTPlantUMLFileAsJSON(): String;
     Function RunJavaScript(Script, ProcName: String): Boolean;
+    Function GetEncoding(): String;
     Procedure GenTPlantUMLFileFromJSON(out PlantUMLFile: TPlantUMLFile; Json: String);
     Procedure ScriptTemplate();
   End;
 
 Var
   frmPlantUMLEditor: TfrmPlantUMLEditor;
+
+Const
+  svgBaseUrl='view-source:https://img.plantuml.biz/plantuml/svg/';
 
 Implementation
 
@@ -260,6 +274,11 @@ begin
   File_Save();
 end;
 
+procedure TfrmPlantUMLEditor.btnSVGClick(Sender: TObject);
+begin
+  RunJavaScript('clickByID("svg-link")', 'clickByID');
+end;
+
 procedure TfrmPlantUMLEditor.EdgeNavigationCompleted(Sender: TCustomEdgeBrowser; IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
 begin
   ActiveControl := Edge;
@@ -342,7 +361,27 @@ begin
               IniData.SaveToFile(FileIni);
               StrToFile(PlantUMLFile.Code,FileLast);
             End;
-          End;
+          End
+        End Else
+        If sgTitle = 'Get_Encoding' Then
+        Begin
+          GenTPlantUMLFileFromJSON(PlantUMLFile, JsonStr);
+          sgMessage := 'PlantUMLFile=' + #13 + #10 + 'Title=' + PlantUMLFile.Title + #13 + #10 + 'FileName=' + PlantUMLFile.FileName + #13 + #10 + 'Code=' + PlantUMLFile.Code + #13 + #10;
+          If Trim(PlantUMLFile.FileName)='' Then PlantUMLFile.FileName:='unknown.puml';
+          ShowMessage(PlantUMLFile.Code);
+
+//          If Trim(PlantUMLFile.Code)<>'' Then
+//          Begin
+//            SaveDialog.InitialDir:=DirImages;
+//            SaveDialog.FileName:=PlantUMLFile.FileName;
+//            If SaveDialog.Execute() Then
+//            Begin
+//              FileLast:=SaveDialog.FileName;
+//              IniData.Values['FileLast']:=FileLast;
+//              IniData.SaveToFile(FileIni);
+//              StrToFile(PlantUMLFile.Code,FileLast);
+//            End;
+//          End
         End;
       end;
     End
@@ -541,6 +580,14 @@ begin
   PlantUMLFile := TJSON.JsonToObject<TPlantUMLFile>(Json, []);
 end;
 
+function TfrmPlantUMLEditor.GetEncoding: String;
+begin
+  Result:='';
+  RunJavaScript('Get_Encoding();', 'Get_Encoding');
+end;
+
+
+
 function TfrmPlantUMLEditor.Load_File(FileName: String): Boolean;
 Var
   JsonStr: string;
@@ -575,6 +622,16 @@ end;
 procedure TfrmPlantUMLEditor.Panel1Click(Sender: TObject);
 begin
   Load_File();
+end;
+
+procedure TfrmPlantUMLEditor.Panel2Click(Sender: TObject);
+begin
+  RunJavaScript('clickByID("png-link")', 'clickByID');
+end;
+
+procedure TfrmPlantUMLEditor.Panel3Click(Sender: TObject);
+begin
+  RunJavaScript('clickByID("ascii-link")', 'clickByID');
 end;
 
 procedure TfrmPlantUMLEditor.Save1Click(Sender: TObject);

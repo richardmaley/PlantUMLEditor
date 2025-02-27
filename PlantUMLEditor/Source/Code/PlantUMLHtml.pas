@@ -375,14 +375,14 @@ Const Html=
               <i class="fas fa-external-link"></i> Open Window
               </button>
               <!-- Hyperlink to PNG image -->
-              <a href="" target="_blank" id="png-link" title="Save the diagram as a PNG Image" style="margin-left: 25px;"><i class="fas fa-image"></i></a>
+              <a href="" target="_blank" id="png-link" title="Save the diagram as a PNG Image" style="margin-left: 25px;" hidden="hidden"><i class="fas fa-image"></i></a>
               <!-- Hyperlink to SVG image -->
-              <a href="" target="_blank" id="svg-link" title="Save the diagram as a SVG Image" style="margin-left: 15px;"><i class="fas fa-vector-square"></i></a>
+              <a href="" target="_blank" id="svg-link" title="Save the diagram as a SVG Image" style="margin-left: 15px;" hidden="hidden"><i class="fas fa-vector-square"></i></a>
               <!-- Hyperlink to ASCII Art image -->
-              <a href="" target="_blank" id="ascii-link" title="Save the diagram as ASCII Art" style="margin-left: 15px;"><i class="fas fa-font"></i></a>
+              <a href="" target="_blank" id="ascii-link" title="Save the diagram as ASCII Art" style="margin-left: 15px;" hidden="hidden"><i class="fas fa-font"></i></a>
               <div class="tooltip-container">
                  <input id="encoded-input" type="text" value="" hidden="hidden">
-                 <button class="decode-btn" id="decode-btn" hidden="hidden">
+                 <button class="decode-btn" id="decode-btn" hidden="hidden" >
                  <i class="fas fa-unlock-alt"></i> Decode
                  </button>
               </div>
@@ -948,6 +948,40 @@ Const Html=
           editor.setValue(PlantUmlFile.Code, 1); // Overwrite all content with the file content, and place the cursor at the end
          }
         console.log("PlantUmlFile populated successfully:", PlantUmlFile);
+      }
+
+    function GetEncoding() {
+      const encodedInput = document.getElementById('encoded-input');
+      return encodedInput.value;
+    }
+
+      function Get_Encoding() {
+      PlantUmlFile.Title="Get_Encoding";
+      PlantUmlFile.FileName="";
+      PlantUmlFile.Code=GetEncoding();
+
+        var message = JSON.stringify(PlantUmlFile);
+        function tryPostMessage(message) {
+            if (window.chrome.webview && window.chrome.webview.postMessage) {
+                window.chrome.webview.postMessage(message); // Send the message back to the Delphi application
+            } else {
+                setTimeout(function() {
+                    tryPostMessage(message);
+                }, 100); // Retry after 100 milliseconds
+            }
+        }
+        if (message) {
+            tryPostMessage(message);
+        }
+      }
+
+    function clickByID(ID) {
+        var item = document.getElementById(ID);
+        if (item) {
+          item.click();
+        } else {
+          console.error('document.getElementById('+ID+') was not found');
+        }
       }
 
       </script>
